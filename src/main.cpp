@@ -36,10 +36,11 @@
  */
 
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h> 
+#include <WiFiClient.h>
 #include <WiFiUdp.h>
 
 extern "C" {
+    // Espressif SDK
     #include "user_interface.h"
 }
 
@@ -76,7 +77,7 @@ mavlink_message_t   uas_message;
 //-- Set things up
 void setup() {
 
-	delay(5000);
+    delay(5000);
 
 #ifdef DEBUG
     Serial1.begin(115200);
@@ -86,15 +87,15 @@ void setup() {
 
     //-- Start AP
     WiFi.mode(WIFI_AP);
-  	WiFi.softAP(ssid, password, wifiChannel);
+    WiFi.softAP(ssid, password, wifiChannel);
     localIP = WiFi.softAPIP();
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip = localIP;
     gcs_ip[3] = 255;
-  
+
 #ifdef DEBUG
-  	Serial1.print("AP IP address: ");
-  	Serial1.println(localIP);
+    Serial1.print("AP IP address: ");
+    Serial1.println(localIP);
     Serial1.print("Broadcast IP: ");
     Serial1.println(gcs_ip);
 #endif
@@ -115,7 +116,7 @@ void setup() {
     wait_for_client();
 
 #ifdef DEBUG
-	  Serial1.println("Start WiFi Bridge");
+      Serial1.println("Start WiFi Bridge");
 #endif
 
     //-- Start UDP
@@ -123,8 +124,8 @@ void setup() {
     //-- Start UART connected to UAS
     Serial.begin(921600);
     //Serial.begin(57600);
-    //-- Swap to TXD2/RXD2 (GPIO015/GPIO013)
-    Serial.swap();
+    //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
+    //Serial.swap();
     //-- Reset Message Buffers
     memset(&gcs_message, 0, sizeof(gcs_message));
     memset(&uas_message, 0, sizeof(uas_message));
@@ -134,10 +135,10 @@ void setup() {
 //-- Main Loop
 void loop() {
     //-- Read UART
-  	if(read_uas_message()) {
+    if(read_uas_message()) {
         send_gcs_message();
         memset(&uas_message, 0, sizeof(uas_message));
-  	}
+    }
     delay(0);
     //-- Read UDP
     if(read_gcs_message()) {
