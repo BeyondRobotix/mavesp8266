@@ -1,7 +1,7 @@
 # MavESP8266
 ## ESP8266 WiFi Access Point and MavLink Bridge
 
-This is very preliminary work. It has been tested only on a [NodeMCU v2 Dev Kit](http://www.seeedstudio.com/depot/NodeMCU-v2-Lua-based-ESP8266-development-kit-p-2415.html) (waiting for a 3.3v FTDI so I can flash to the ESP-01 board included with the [PixRacer](https://pixhawk.org/modules/pixracer))
+This is preliminary work. It was developed using a [NodeMCU v2 Dev Kit](http://www.seeedstudio.com/depot/NodeMCU-v2-Lua-based-ESP8266-development-kit-p-2415.html) as it conveniently provides a secondary UART for debugging. It has been tested with the ESP-01 shipped with the [PixRacer](https://pixhawk.org/modules/pixracer) and it is stable at 921600 baud.
 
 The build enviroment is based on [PlatformIO](http://platformio.org). Follow the instructions found here: http://platformio.org/#!/get-started (only tested on Mac OS) for installing it but skip the ```platform init``` step as this has already been done, modified and it is included in this repo. In summary:
 
@@ -32,3 +32,4 @@ The ```git clone --recursive``` above not only cloned the MavESP8266 repository 
 
 ```git submodule update```
 
+User level (as well as wiring) istructions can be found here: https://pixhawk.org/peripherals/8266
