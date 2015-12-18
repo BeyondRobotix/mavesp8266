@@ -32,4 +32,6 @@ The ```git clone --recursive``` above not only cloned the MavESP8266 repository 
 
 ```git submodule update```
 
-User level (as well as wiring) istructions can be found here: https://pixhawk.org/peripherals/8266
+### Wiring it up
+
+User level (as well as wiring) instructions can be found here: https://pixhawk.org/peripherals/8266
