@@ -59,7 +59,7 @@ void wait_for_client();
 
 //-- WiFi AP Settings
 const char*     ssid            = "PixRacer";
-const char*     password        = 0; // Blank (or NULL) for an open AP. Set some password for secure AP.
+const char*     password        = "pixracer"; // Blank (or NULL) for an open AP.
 IPAddress       localIP;
 uint16_t        localPort       = 14555;
 int32_t         wifiChannel     = 11;
@@ -87,6 +87,7 @@ void setup() {
 
     //-- Start AP
     WiFi.mode(WIFI_AP);
+    WiFi.encryptionType(AUTH_WPA2_PSK);
     WiFi.softAP(ssid, password, wifiChannel);
     localIP = WiFi.softAPIP();
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
