@@ -3,7 +3,7 @@ to be made under the same license.
 ```
     /****************************************************************************
      *
-     * Copyright (c) 2015 Gus Grubba. All rights reserved.
+     * Copyright (c) 2015, 2016 Gus Grubba. All rights reserved.
      *
      * Redistribution and use in source and binary forms, with or without
      * modification, are permitted provided that the following conditions

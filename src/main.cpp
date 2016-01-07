@@ -47,7 +47,7 @@ extern "C" {
 #include <mavlink.h>
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX)
-//#define DEBUG
+// #define DEBUG
 
 //-- Forward declarations
 
@@ -65,13 +65,22 @@ uint16_t        localPort       = 14555;
 int32_t         wifiChannel     = 11;
 
 //-- GCS Data
+
+#define UART_SPEED  921600
+
 mavlink_message_t   gcs_message;
 WiFiUDP             Udp;
 uint16_t            gcs_port = 14550;
 IPAddress           gcs_ip;
+unsigned char       packet_sequence = 0;
+unsigned long       packets_lost = 0;
 
 //-- UAS Data
-mavlink_message_t   uas_message;
+#define UAS_QUEUE_SIZE      5
+#define UAS_QUEUE_TIMEOUT   5 // 5ms
+int                     uas_queue_count = 0;
+unsigned long           uas_queue_time  = 0;
+mavlink_message_t       uas_message[UAS_QUEUE_SIZE];
 
 //---------------------------------------------------------------------------------
 //-- Set things up
@@ -83,6 +92,12 @@ void setup() {
     Serial1.begin(115200);
     Serial1.println();
     Serial1.println("Configuring access point...");
+    Serial1.print("Free Sketch Space: ");
+    Serial1.println(ESP.getFreeSketchSpace());
+    Serial1.print("Message size: ");
+    Serial1.println(sizeof(mavlink_message_t));
+    Serial1.print("Message buffer size: ");
+    Serial1.println(sizeof(uas_message));
 #endif
 
     //-- Start AP
@@ -123,13 +138,14 @@ void setup() {
     //-- Start UDP
     Udp.begin(localPort);
     //-- Start UART connected to UAS
-    Serial.begin(921600);
-    //Serial.begin(57600);
+    Serial.begin(UART_SPEED);
     //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
-    //Serial.swap();
+    // Serial.swap();
     //-- Reset Message Buffers
     memset(&gcs_message, 0, sizeof(gcs_message));
     memset(&uas_message, 0, sizeof(uas_message));
+    uas_queue_time  = millis();
+    uas_queue_count = 0;
 }
 
 //---------------------------------------------------------------------------------
@@ -137,14 +153,23 @@ void setup() {
 void loop() {
     //-- Read UART
     if(read_uas_message()) {
-        send_gcs_message();
-        memset(&uas_message, 0, sizeof(uas_message));
+        uas_queue_count++;
     }
     delay(0);
     //-- Read UDP
     if(read_gcs_message()) {
         send_uas_message();
         memset(&gcs_message, 0, sizeof(gcs_message));
+    }
+    //-- Do we have a message to send and is it time to send data to GCS?
+    if(uas_queue_count && (uas_queue_count == UAS_QUEUE_SIZE || (millis() - uas_queue_time) > UAS_QUEUE_TIMEOUT)) {
+        send_gcs_message();
+        memset(&uas_message, 0, sizeof(uas_message));
+        #ifdef DEBUG
+        Serial1.print(uas_queue_count);
+        #endif
+        uas_queue_time  = millis();
+        uas_queue_count = 0;
     }
 }
 
@@ -160,15 +185,30 @@ bool read_uas_message()
         if (result >= 0)
         {
             // Parsing
-            msgReceived = mavlink_parse_char(MAVLINK_COMM_1, result, &uas_message, &uas_status);
+            msgReceived = mavlink_parse_char(MAVLINK_COMM_1, result, &uas_message[uas_queue_count], &uas_status);
             if(msgReceived) {
                 #ifdef DEBUG
-                if(uas_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+                if(uas_message[uas_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                     Serial1.print("U");
-                } else {
-                    Serial1.print("u");
                 }
                 #endif
+                int pseq  = (int)uas_message[uas_queue_count].seq;
+                int plost = 0;
+                //-- Account for overflow during packet loss
+                if(pseq < packet_sequence) {
+                    plost = (pseq + 255) - packet_sequence;
+                } else {
+                    plost = pseq - packet_sequence;
+                }
+                #ifdef DEBUG
+                if(plost) {
+                    Serial1.print("(");
+                    Serial1.print(plost);
+                    Serial1.print(")");
+                }
+                #endif
+                packet_sequence = uas_message[uas_queue_count].seq + 1;
+                packets_lost += plost;
                 break;
             }
         }
@@ -205,8 +245,6 @@ bool read_gcs_message()
                     #ifdef DEBUG
                     if(gcs_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                         Serial1.print("G");
-                    } else {
-                        Serial1.print("g");
                     }
                     #endif
                     break;
@@ -220,12 +258,14 @@ bool read_gcs_message()
 //---------------------------------------------------------------------------------
 //-- Forward message to the GCS
 bool send_gcs_message() {
-    // Translate message to buffer
-    char buf[300];
-    unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &uas_message);
-    // Send it
     Udp.beginPacket(gcs_ip, gcs_port);
-    Udp.write((uint8_t*)(void*)buf, len);
+    for(int i = 0; i < uas_queue_count; i++) {
+        // Translate message to buffer
+        char buf[300];
+        unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &uas_message[i]);
+        // Send it
+        Udp.write((uint8_t*)(void*)buf, len);
+    }
     Udp.endPacket();
 }
 
