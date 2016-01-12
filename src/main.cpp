@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2015 Gus Grubba. All rights reserved.
+ * Copyright (c) 2015, 2016 Gus Grubba. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +30,7 @@
 
 /**
  * @file main.cpp
- * Minimal, Bare-bones ESP8266 Wifi AP, MavLink UART/UDP Bridge
+ * ESP8266 Wifi AP, MavLink UART/UDP Bridge
  *
  * @author Gus Grubba <mavlink@grubba.com>
  */
@@ -47,12 +47,13 @@ extern "C" {
 
 #include <mavlink.h>
 
+//-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
 #define MAVESP8266_VERSION_MINOR    0
 #define MAVESP8266_VERSION_BUILD    1
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX)
-#define DEBUG
+//#define DEBUG
 
 //-- Forward declarations
 
@@ -62,7 +63,7 @@ bool     send_gcs_message           ();
 bool     send_uas_message           ();
 void     wait_for_client            ();
 void     send_radio_status          ();
-void     send_debug_message         (const char* text);
+void     send_status_message        (uint8_t type, const char* text);
 void     handle_param_set           (mavlink_param_set_t* param);
 void     handle_param_request_list  ();
 void     handle_param_request_read  (mavlink_param_request_read_t* param);
@@ -78,6 +79,7 @@ void     set_all_defaults           ();
 uint32_t get_eeprom_crc             ();
 void     save_all_to_eeprom         ();
 void     load_all_from_eeprom       ();
+void     wifi_reboot                ();
 
 //-- Constants
 
@@ -94,9 +96,11 @@ const char* kHASH_PARAM         = "_HASH_CHECK";
 
 //-- Parameters
 //   No string support in parameters so we stash a char[16] into 4 uint32_t
+//   This is dying for a proper OO encapsulation and abstraction...
 
 uint32_t    param_sw_version;
 int8_t      param_debug_enabled;
+uint8_t     param_component_id;
 uint32_t    param_wifi_channel;
 uint16_t    param_wifi_udp_hport;
 uint16_t    param_wifi_udp_cport;
@@ -115,6 +119,7 @@ struct stMavEspParameters {
 enum {
     ID_PARAMETER_FWVER = 0,
     ID_PARAMETER_DEBUG,
+    ID_PARAMETER_COMP_ID,
     ID_PARAMETER_CHANNEL,
     ID_PARAMETER_HPORT,
     ID_PARAMETER_CPORT,
@@ -134,6 +139,7 @@ struct stMavEspParameters mavParameters[] = {
 //   ID                 Value (pointer)             Index                   Length                          Type
     {"SW_VER",          &param_sw_version,          ID_PARAMETER_FWVER,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
     {"DEBUG_ENABLED",   &param_debug_enabled,       ID_PARAMETER_DEBUG,     sizeof(int8_t),                 MAV_PARAM_TYPE_INT8},
+    {"COMP_ID",         &param_component_id,        ID_PARAMETER_COMP_ID,   sizeof(uint8_t),                MAV_PARAM_TYPE_UINT8},
     {"WIFI_CHANNEL",    &param_wifi_channel,        ID_PARAMETER_CHANNEL,   sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
     {"WIFI_UDP_HPORT",  &param_wifi_udp_hport,      ID_PARAMETER_HPORT,     sizeof(uint16_t),               MAV_PARAM_TYPE_UINT16},
     {"WIFI_UDP_CPORT",  &param_wifi_udp_cport,      ID_PARAMETER_CPORT,     sizeof(uint16_t),               MAV_PARAM_TYPE_UINT16},
@@ -152,6 +158,10 @@ struct stMavEspParameters mavParameters[] = {
 #define EEPROM_SPACE            32 * sizeof(uint32_t)
 #define EEPROM_CRC_ADD          EEPROM_SPACE - (sizeof(uint32_t) << 1)
 
+#ifndef DEBUG
+uint8_t                 reset_state;
+#endif
+
 //-- WiFi AP Settings
 IPAddress               localIP;
 
@@ -162,6 +172,7 @@ IPAddress               gcs_ip;
 uint8_t                 gcs_system_id       = 0;
 uint8_t                 gcs_component_id    = 0;
 bool                    gcs_heard_from      = false;
+uint16_t                gcs_udp_port        = DEFAULT_UDP_HPORT;
 
 uint8_t                 udp_seq_expected    = 0;
 uint16_t                udp_packets_lost    = 0;
@@ -170,7 +181,6 @@ uint32_t                udp_packets_count   = 0;
 //-- UAS Data
 bool                    uas_heard_from      = false;
 uint8_t                 system_id           = 0;
-uint8_t                 component_id        = MAV_COMP_ID_UDP_BRIDGE;
 
 //-- UDP Outgoing Packet Queue
 #define UAS_QUEUE_SIZE          5
@@ -180,7 +190,10 @@ unsigned long           uas_queue_time      = 0;
 mavlink_message_t       uas_message[UAS_QUEUE_SIZE];
 
 //-- Radio Status
-unsigned long           last_status_time  = 0;
+unsigned long           last_status_time    = 0;
+
+//-- Our component ID
+uint8_t                 component_id        = MAV_COMP_ID_UDP_BRIDGE;
 
 //-- 16-Entry CRC Lookup Table
 static uint32_t crc_table[] = {
@@ -223,9 +236,13 @@ static uint32_t crc_table[] = {
 void setup() {
 
     delay(1000);
-    //-- Initialized GPIO02 (Used for "Reset To Factory")
+
 #ifndef DEBUG
+    //-- Initialized GPIO02 (Used for "Reset To Factory")
+    //   We only use it for non bebug because GPIO02 is used as a serial
+    //   pin (TX) when debugging.
     pinMode(GPIO02, INPUT_PULLUP);
+    reset_state = digitalRead(GPIO02);
 #endif
 
 #ifdef DEBUG
@@ -243,6 +260,10 @@ void setup() {
     //-- TODO: User begin()/end() where it's used
     EEPROM.begin(EEPROM_SPACE);
     init_eeprom();
+
+    //-- Init variables that shouldn't change unless we reboot
+    gcs_udp_port = param_wifi_udp_hport;
+    component_id = param_component_id;
 
     //-- Start AP
     WiFi.mode(WIFI_AP);
@@ -284,7 +305,9 @@ void setup() {
     //-- Start UART connected to UAS
     Serial.begin(param_uart_baud_rate);
     //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
+#ifdef DEBUG
     Serial.swap();
+#endif
     //-- Reset Message Buffers
     memset(&gcs_message, 0, sizeof(gcs_message));
     memset(&uas_message, 0, sizeof(uas_message));
@@ -300,10 +323,10 @@ void loop() {
     //-- Test for "Reset To Factory"
     /* Needs testing
     int reset = digitalRead(GPIO02);
-    if(!reset) {
+    if(reset != reset_state) {
         set_all_defaults();
         save_all_to_eeprom();
-        ESP.reset();
+        wifi_reboot();
     }
     */
 #endif
@@ -324,8 +347,8 @@ void loop() {
         //#ifdef DEBUG
         //Serial1.print(uas_queue_count);
         //#endif
-        uas_queue_time  = millis();
         uas_queue_count = 0;
+        uas_queue_time  = millis();
     }
     //-- Update radio status (1Hz)
     if(uas_heard_from && (millis() - last_status_time > 1000)) {
@@ -410,6 +433,10 @@ bool read_gcs_message()
                         check_upd_errors(&gcs_message);
                     }
                     //-- Check for message we might be interested
+                    //
+                    //   TODO: These response messages need to be queued up and sent as part of the main loop and not all
+                    //   at once from here.
+                    //
                     #ifdef DEBUG
                         //if(gcs_message.msgid != MAVLINK_MSG_ID_HEARTBEAT) {
                         //    Serial1.println("");
@@ -482,9 +509,9 @@ bool read_gcs_message()
                             if(strncmp(param.param_id, kHASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN) == 0) {
                                 send_parameter(kHASH_PARAM, param_hash_check(), 0xFFFF);
                             } else {
-                                //-- Otherwise, handle this component and eat message
+                                handle_param_request_read(&param);
+                                //-- If this was addressed to me only eat message
                                 if(param.target_component == component_id) {
-                                    handle_param_request_read(&param);
                                     //-- Eat message (don't send it to FC)
                                     memset(&gcs_message, 0, sizeof(gcs_message));
                                     msgReceived = false;
@@ -505,7 +532,7 @@ bool read_gcs_message()
 //---------------------------------------------------------------------------------
 //-- Forward message to the GCS
 bool send_gcs_message() {
-    Udp.beginPacket(gcs_ip, param_wifi_udp_hport);
+    Udp.beginPacket(gcs_ip, gcs_udp_port);
     for(int i = 0; i < uas_queue_count; i++) {
         // Translate message to buffer
         char buf[300];
@@ -557,8 +584,8 @@ void wait_for_client() {
 //-- Send Radio Status
 void send_radio_status()
 {
-    int buffer_size = UAS_QUEUE_SIZE;
-    int buffer_left = UAS_QUEUE_SIZE - uas_queue_count;
+    float buffer_size = (float)UAS_QUEUE_SIZE;
+    float buffer_left = (float)(UAS_QUEUE_SIZE - uas_queue_count);
     //-- Build message    
     mavlink_message_t msg;
     mavlink_msg_radio_status_pack(
@@ -567,7 +594,7 @@ void send_radio_status()
         &msg,
         0xff,   // We don't have access to RSSI
         0xff,   // We don't have access to Remote RSSI
-        (uint8_t)(((float)buffer_left / (float)buffer_size) * 100.0f),
+        (uint8_t)((buffer_left / buffer_size) * 100.0f),
         0,      // We don't have access to noise data
         0,      // We don't have access to remote noise data
         udp_packets_lost,
@@ -578,20 +605,21 @@ void send_radio_status()
 
 //---------------------------------------------------------------------------------
 //-- Send Debug Message
-void send_debug_message(const char* text)
+void send_status_message(uint8_t type, const char* text)
 {
-    if(param_debug_enabled) {
-        //-- Build message    
-        mavlink_message_t msg;
-        mavlink_msg_statustext_pack(
-            system_id,
-            component_id,
-            &msg,
-            MAV_SEVERITY_DEBUG,
-            text
-        );
-        send_single_udp_message(&msg);
+    if(!param_debug_enabled && type == MAV_SEVERITY_DEBUG) {
+        return;
     }
+    //-- Build message    
+    mavlink_message_t msg;
+    mavlink_msg_statustext_pack(
+        system_id,
+        component_id,
+        &msg,
+        type,
+        text
+    );
+    send_single_udp_message(&msg);
 }
 
 //---------------------------------------------------------------------------------
@@ -601,8 +629,12 @@ void handle_param_set(mavlink_param_set_t* param)
     for(int i = 0; i < ID_PARAMETER_COUNT; i++) {
         //-- Find parameter
         if(strncmp(param->param_id, mavParameters[i].id, strlen(mavParameters[i].id)) == 0) {
-            //-- Set new value and "Ack" it
-            memcpy(mavParameters[i].value, &param->param_value, mavParameters[i].length);
+            //-- Version is Read Only
+            if(i != ID_PARAMETER_FWVER) {
+                //-- Set new value
+                memcpy(mavParameters[i].value, &param->param_value, mavParameters[i].length);
+            }
+            //-- "Ack" it
             send_parameter(mavParameters[i].index);
             return;
         }
@@ -701,7 +733,7 @@ void send_single_udp_message(mavlink_message_t* msg)
     char buf[300];
     unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, msg);
     // Send it
-    Udp.beginPacket(gcs_ip, param_wifi_udp_hport);
+    Udp.beginPacket(gcs_ip, gcs_udp_port);
     Udp.write((uint8_t*)(void*)buf, len);
     Udp.endPacket();
 }
@@ -737,7 +769,8 @@ void check_upd_errors(mavlink_message_t* msg)
 #if 0
 
     This is not working. The sequence is completely out of whack and I cannot count on
-    it to infer packet loss.
+    it to infer packet loss.  It seems QGC sends multiple sets of sequence numbers and
+    even those are not normal. Some are incremented by 2 others by 1.
 
     //-- Don't bother if we have not heard from the GCS (and it's the proper sys/comp ids)
     if(!gcs_heard_from || msg->sysid != gcs_system_id || msg->compid != gcs_component_id) {
@@ -755,7 +788,7 @@ void check_upd_errors(mavlink_message_t* msg)
         char debug_message[52];
         snprintf(debug_message, 51, "Total: %u Seq: %u Expctd: %u Lost: %u",
             udp_packets_count, msg->seq, udp_seq_expected, packet_lost_count);
-        send_debug_message(debug_message);
+        send_status_message(MAV_SEVERITY_DEBUG, debug_message);
     }
     udp_packets_lost += packet_lost_count;
     udp_seq_expected = msg->seq + 2; //-- For whatver reason, QGC increments this by 2
@@ -766,25 +799,29 @@ void check_upd_errors(mavlink_message_t* msg)
 //-- Handle Commands
 void handle_command_long(mavlink_command_long_t* cmd)
 {
+    bool reboot = false;
     uint8_t result = MAV_RESULT_UNSUPPORTED;
     if(cmd->command == MAV_CMD_PREFLIGHT_STORAGE) {
-        result = MAV_RESULT_ACCEPTED;
         //-- Read from EEPROM
         if((uint8_t)cmd->param1 == 0) {
+            result = MAV_RESULT_ACCEPTED;
             load_all_from_eeprom();
         //-- Write to EEPROM
         } else if((uint8_t)cmd->param1 == 1) {
+            result = MAV_RESULT_ACCEPTED;
             save_all_to_eeprom();
             delay(0);
         //-- Restore defaults
         } else if((uint8_t)cmd->param1 == 2) {
+            result = MAV_RESULT_ACCEPTED;
             set_all_defaults();
         }
     } else if(cmd->command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
         //-- Reset "Companion Computer"
         if((uint8_t)cmd->param2 == 1) {
-            ESP.reset();
-        }        
+            result = MAV_RESULT_ACCEPTED;
+            reboot = true;
+        }
     }
     //-- Response
     mavlink_message_t msg;
@@ -796,6 +833,10 @@ void handle_command_long(mavlink_command_long_t* cmd)
         result
     );
     send_single_udp_message(&msg);
+    delay(0);
+    if(reboot) {
+        wifi_reboot();
+    }
 }
 
 //---------------------------------------------------------------------------------
@@ -828,8 +869,9 @@ void init_eeprom()
 //-- Computes EEPROM CRC
 void set_all_defaults()
 {
-    param_sw_version        = (MAVESP8266_VERSION_MAJOR << 24 | MAVESP8266_VERSION_MINOR << 16 | MAVESP8266_VERSION_BUILD);
+    param_sw_version        = (((MAVESP8266_VERSION_MAJOR << 24) & 0xF000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x0F00) | (MAVESP8266_VERSION_BUILD & 0x00FF));
     param_debug_enabled     = 0;
+    param_component_id      = MAV_COMP_ID_UDP_BRIDGE;
     param_wifi_channel      = DEFAULT_WIFI_CHANNEL;
     param_wifi_udp_hport    = DEFAULT_UDP_HPORT;
     param_wifi_udp_cport    = DEFAULT_UDP_CPORT;
@@ -916,4 +958,12 @@ void load_all_from_eeprom()
     #ifdef DEBUG
         Serial1.println("");
     #endif
+}
+
+//---------------------------------------------------------------------------------
+//-- Reboot
+void wifi_reboot()
+{
+    send_status_message(MAV_SEVERITY_NOTICE, "Rebooting WiFi Bridge.");
+    ESP.reset();
 }
