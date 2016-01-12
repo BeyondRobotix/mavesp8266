@@ -77,25 +77,32 @@ void     init_eeprom                ();
 void     set_all_defaults           ();
 uint32_t get_eeprom_crc             ();
 void     save_all_to_eeprom         ();
-void     save_to_eeprom             (uint32_t index);
+void     load_all_from_eeprom       ();
 
 //-- Constants
 
 #define DEFAULT_UART_SPEED      921600
 #define DEFAULT_WIFI_CHANNEL    11
-#define UAS_QUEUE_SIZE          5
-#define UAS_QUEUE_TIMEOUT       5 // 5ms
+#define DEFAULT_UDP_HPORT       14550
+#define DEFAULT_UDP_CPORT       14555
 
+const char* kDEFAULT_SSDI       = "PixRacer";
+const char* kDEFAULT_PASSWORD   = "pixracer";
 const char* kHASH_PARAM         = "_HASH_CHECK";
 
-//-- Parameters
+#define GPIO02  2
 
-uint32_t    param_sw_version        = (MAVESP8266_VERSION_MAJOR << 24 | MAVESP8266_VERSION_MINOR << 16 | MAVESP8266_VERSION_BUILD);
-int8_t      param_debug_enabled     = 0;
-uint32_t    param_wifi_channel      = DEFAULT_WIFI_CHANNEL;
-char        param_wifi_ssid[32]     = {"PixRacer"};
-char        param_wifi_password[32] = {"pixracer"}; // Blank for an open AP.
-uint32_t    param_uart_baud_rate    = DEFAULT_UART_SPEED;
+//-- Parameters
+//   No string support in parameters so we stash a char[16] into 4 uint32_t
+
+uint32_t    param_sw_version;
+int8_t      param_debug_enabled;
+uint32_t    param_wifi_channel;
+uint16_t    param_wifi_udp_hport;
+uint16_t    param_wifi_udp_cport;
+char        param_wifi_ssid[16];
+char        param_wifi_password[16];
+uint32_t    param_uart_baud_rate;
 
 struct stMavEspParameters {
     char        id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
@@ -109,34 +116,48 @@ enum {
     ID_PARAMETER_FWVER = 0,
     ID_PARAMETER_DEBUG,
     ID_PARAMETER_CHANNEL,
-    ID_PARAMETER_SSID,
-    ID_PARAMETER_PASS,
+    ID_PARAMETER_HPORT,
+    ID_PARAMETER_CPORT,
+    ID_PARAMETER_SSID1,
+    ID_PARAMETER_SSID2,
+    ID_PARAMETER_SSID3,
+    ID_PARAMETER_SSID4,
+    ID_PARAMETER_PASS1,
+    ID_PARAMETER_PASS2,
+    ID_PARAMETER_PASS3,
+    ID_PARAMETER_PASS4,
     ID_PARAMETER_UART,
     ID_PARAMETER_COUNT
 };
 
 struct stMavEspParameters mavParameters[] = {
-//   ID                 Value (pointer)         Index                   Length                          Type
-    {"SW_VER",          &param_sw_version,      ID_PARAMETER_FWVER,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
-    {"DEBUG_ENABLED",   &param_debug_enabled,   ID_PARAMETER_DEBUG,     sizeof(uint8_t),                MAV_PARAM_TYPE_INT8},
-    {"WIFI_CHANNEL",    &param_wifi_channel,    ID_PARAMETER_CHANNEL,   sizeof(uint32_t),               MAV_PARAM_TYPE_INT32},
-    {"WIFI_SSID",       param_wifi_ssid,        ID_PARAMETER_SSID,      sizeof(param_wifi_ssid),        MAV_PARAM_TYPE_INT8},
-    {"WIFI_PASSWORD",   param_wifi_password,    ID_PARAMETER_PASS,      sizeof(param_wifi_password),    MAV_PARAM_TYPE_INT8},
-    {"UART_BAUDRATE",   &param_uart_baud_rate,  ID_PARAMETER_UART,      sizeof(uint32_t),               MAV_PARAM_TYPE_INT32}
+//   ID                 Value (pointer)             Index                   Length                          Type
+    {"SW_VER",          &param_sw_version,          ID_PARAMETER_FWVER,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"DEBUG_ENABLED",   &param_debug_enabled,       ID_PARAMETER_DEBUG,     sizeof(int8_t),                 MAV_PARAM_TYPE_INT8},
+    {"WIFI_CHANNEL",    &param_wifi_channel,        ID_PARAMETER_CHANNEL,   sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"WIFI_UDP_HPORT",  &param_wifi_udp_hport,      ID_PARAMETER_HPORT,     sizeof(uint16_t),               MAV_PARAM_TYPE_UINT16},
+    {"WIFI_UDP_CPORT",  &param_wifi_udp_cport,      ID_PARAMETER_CPORT,     sizeof(uint16_t),               MAV_PARAM_TYPE_UINT16},
+    {"WIFI_SSID1",      &param_wifi_ssid[0],        ID_PARAMETER_SSID1,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"WIFI_SSID2",      &param_wifi_ssid[4],        ID_PARAMETER_SSID2,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"WIFI_SSID3",      &param_wifi_ssid[8],        ID_PARAMETER_SSID3,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"WIFI_SSID4",      &param_wifi_ssid[12],       ID_PARAMETER_SSID4,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"WIFI_PASSWORD1",  &param_wifi_password[0],    ID_PARAMETER_PASS1,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"WIFI_PASSWORD2",  &param_wifi_password[4],    ID_PARAMETER_PASS2,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"WIFI_PASSWORD3",  &param_wifi_password[8],    ID_PARAMETER_PASS3,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"WIFI_PASSWORD4",  &param_wifi_password[12],   ID_PARAMETER_PASS4,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
+    {"UART_BAUDRATE",   &param_uart_baud_rate,      ID_PARAMETER_UART,      sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32}
 };
 
 //-- Reserved space for EEPROM persistence. A change in this will cause all values to reset to defaults.
-#define EEPROM_SPACE            10 * sizeof(uint32_t)
-#define EEPROM_CRC_ADD          EEPROM_SPACE + sizeof(uint32_t)
+#define EEPROM_SPACE            32 * sizeof(uint32_t)
+#define EEPROM_CRC_ADD          EEPROM_SPACE - (sizeof(uint32_t) << 1)
 
 //-- WiFi AP Settings
 IPAddress               localIP;
-uint16_t                localPort           = 14555;
 
 //-- GCS Data
 mavlink_message_t       gcs_message;
 WiFiUDP                 Udp;
-uint16_t                gcs_port            = 14550;
 IPAddress               gcs_ip;
 uint8_t                 gcs_system_id       = 0;
 uint8_t                 gcs_component_id    = 0;
@@ -148,17 +169,21 @@ uint32_t                udp_packets_count   = 0;
 
 //-- UAS Data
 bool                    uas_heard_from      = false;
+uint8_t                 system_id           = 0;
+uint8_t                 component_id        = MAV_COMP_ID_UDP_BRIDGE;
+
+//-- UDP Outgoing Packet Queue
+#define UAS_QUEUE_SIZE          5
+#define UAS_QUEUE_TIMEOUT       5 // 5ms
 int                     uas_queue_count     = 0;
 unsigned long           uas_queue_time      = 0;
 mavlink_message_t       uas_message[UAS_QUEUE_SIZE];
-uint8_t                 system_id           = 0;
-uint8_t                 component_id        = MAV_COMP_ID_UDP_BRIDGE;
 
 //-- Radio Status
 unsigned long           last_status_time  = 0;
 
 //-- 16-Entry CRC Lookup Table
-static uint32_t crc_table[]= {
+static uint32_t crc_table[] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
     0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
     0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
@@ -197,7 +222,11 @@ static uint32_t crc_table[]= {
 //-- Set things up
 void setup() {
 
-    delay(5000);
+    delay(1000);
+    //-- Initialized GPIO02 (Used for "Reset To Factory")
+#ifndef DEBUG
+    pinMode(GPIO02, INPUT_PULLUP);
+#endif
 
 #ifdef DEBUG
     Serial1.begin(115200);
@@ -210,6 +239,10 @@ void setup() {
     Serial1.print("Message buffer size: ");
     Serial1.println(sizeof(uas_message));
 #endif
+
+    //-- TODO: User begin()/end() where it's used
+    EEPROM.begin(EEPROM_SPACE);
+    init_eeprom();
 
     //-- Start AP
     WiFi.mode(WIFI_AP);
@@ -247,9 +280,9 @@ void setup() {
 #endif
 
     //-- Start UDP
-    Udp.begin(localPort);
+    Udp.begin(param_wifi_udp_cport);
     //-- Start UART connected to UAS
-    Serial.begin(DEFAULT_UART_SPEED);
+    Serial.begin(param_uart_baud_rate);
     //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
     Serial.swap();
     //-- Reset Message Buffers
@@ -263,6 +296,17 @@ void setup() {
 //---------------------------------------------------------------------------------
 //-- Main Loop
 void loop() {
+#ifndef DEBUG
+    //-- Test for "Reset To Factory"
+    /* Needs testing
+    int reset = digitalRead(GPIO02);
+    if(!reset) {
+        set_all_defaults();
+        save_all_to_eeprom();
+        ESP.reset();
+    }
+    */
+#endif
     //-- Read UART
     if(read_uas_message()) {
         uas_queue_count++;
@@ -285,6 +329,7 @@ void loop() {
     }
     //-- Update radio status (1Hz)
     if(uas_heard_from && (millis() - last_status_time > 1000)) {
+        delay(0);
         send_radio_status();
         last_status_time = millis();
     }
@@ -460,7 +505,7 @@ bool read_gcs_message()
 //---------------------------------------------------------------------------------
 //-- Forward message to the GCS
 bool send_gcs_message() {
-    Udp.beginPacket(gcs_ip, gcs_port);
+    Udp.beginPacket(gcs_ip, param_wifi_udp_hport);
     for(int i = 0; i < uas_queue_count; i++) {
         // Translate message to buffer
         char buf[300];
@@ -570,6 +615,7 @@ void handle_param_request_list()
 {
     for(int i = 0; i < ID_PARAMETER_COUNT; i++) {
         send_parameter(mavParameters[i].index);
+        delay(0);
     }
 }
 
@@ -592,15 +638,23 @@ void send_parameter(uint16_t index)
 {
     #ifdef DEBUG
         Serial1.print("Sending Parameter: ");
-        Serial1.println(mavParameters[index].id);
+        Serial1.print(mavParameters[index].id);
+        Serial1.print(" Value: ");
+        if(mavParameters[index].type == MAV_PARAM_TYPE_UINT32)
+            Serial1.println(*((uint32_t*)mavParameters[index].value));
+        else if(mavParameters[index].type == MAV_PARAM_TYPE_UINT16)
+            Serial1.println(*((uint16_t*)mavParameters[index].value));
+        else
+            Serial1.println(*((int8_t*)mavParameters[index].value));
     #endif
     //-- Build message
     mavlink_param_value_t msg;
     msg.param_count = ID_PARAMETER_COUNT;
     msg.param_index = index;
     strncpy(msg.param_id, mavParameters[index].id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-    //-- TODO: This needs to be updated once parameters support strings
-    memcpy(&msg.param_value, mavParameters[index].value, sizeof(uint32_t));
+    uint32_t val = 0;
+    memcpy(&val, mavParameters[index].value, mavParameters[index].length);
+    memcpy(&msg.param_value, &val, sizeof(uint32_t));
     msg.param_type = mavParameters[index].type;
     mavlink_message_t mmsg;
     mavlink_msg_param_value_encode(
@@ -647,7 +701,7 @@ void send_single_udp_message(mavlink_message_t* msg)
     char buf[300];
     unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, msg);
     // Send it
-    Udp.beginPacket(gcs_ip, gcs_port);
+    Udp.beginPacket(gcs_ip, param_wifi_udp_hport);
     Udp.write((uint8_t*)(void*)buf, len);
     Udp.endPacket();
 }
@@ -662,6 +716,7 @@ uint32_t param_hash_check()
         //-- TODO: When parameters get to support strings, this needs to be updated (strlen() instead of .length)
         crc = crc32part((uint8_t *)(void*)mavParameters[i].value, mavParameters[i].length, crc);
     }
+    delay(0);
     return crc;
 }
 
@@ -716,20 +771,20 @@ void handle_command_long(mavlink_command_long_t* cmd)
         result = MAV_RESULT_ACCEPTED;
         //-- Read from EEPROM
         if((uint8_t)cmd->param1 == 0) {
-            #ifdef DEBUG
-                Serial1.println("Loading parameters from EEPROM");
-            #endif
+            load_all_from_eeprom();
         //-- Write to EEPROM
         } else if((uint8_t)cmd->param1 == 1) {
-            #ifdef DEBUG
-                Serial1.println("Saving parameters to EEPROM");
-            #endif
+            save_all_to_eeprom();
+            delay(0);
         //-- Restore defaults
         } else if((uint8_t)cmd->param1 == 2) {
-            #ifdef DEBUG
-                Serial1.println("Restoring default parameters");
-            #endif
+            set_all_defaults();
         }
+    } else if(cmd->command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
+        //-- Reset "Companion Computer"
+        if((uint8_t)cmd->param2 == 1) {
+            ESP.reset();
+        }        
     }
     //-- Response
     mavlink_message_t msg;
@@ -747,15 +802,25 @@ void handle_command_long(mavlink_command_long_t* cmd)
 //-- Initializes EEPROM. If not initialized, set to defaults and save it.
 void init_eeprom()
 {
+    load_all_from_eeprom();
     //-- Is it uninitialized?
-    uint32_t crc = 0;
-    EEPROM.get(EEPROM_CRC_ADD, crc);
-    if(crc != get_eeprom_crc()) {
+    uint32_t saved_crc = 0;
+    EEPROM.get(EEPROM_CRC_ADD, saved_crc);
+    uint32_t current_crc = get_eeprom_crc();
+    if(saved_crc != current_crc) {
+        #ifdef DEBUG
+            Serial1.print("Initializing EEPROM. Saved: ");
+            Serial1.print(saved_crc);
+            Serial1.print(" Current: ");
+            Serial1.println(current_crc);
+        #endif
         //-- Set all defaults
-
+        set_all_defaults();
         //-- Save it all and store CRC
         save_all_to_eeprom();
-        EEPROM.put(EEPROM_CRC_ADD, get_eeprom_crc());
+    } else {
+        //-- Load all parameters from EEPROM
+        load_all_from_eeprom();
     }
 }
 
@@ -763,16 +828,28 @@ void init_eeprom()
 //-- Computes EEPROM CRC
 void set_all_defaults()
 {
-    param_debug_enabled   = 0;
-    param_wifi_channel    = DEFAULT_WIFI_CHANNEL;
+    param_sw_version        = (MAVESP8266_VERSION_MAJOR << 24 | MAVESP8266_VERSION_MINOR << 16 | MAVESP8266_VERSION_BUILD);
+    param_debug_enabled     = 0;
+    param_wifi_channel      = DEFAULT_WIFI_CHANNEL;
+    param_wifi_udp_hport    = DEFAULT_UDP_HPORT;
+    param_wifi_udp_cport    = DEFAULT_UDP_CPORT;
+    param_uart_baud_rate    = DEFAULT_UART_SPEED;
+    strncpy(param_wifi_ssid, kDEFAULT_SSDI, sizeof(param_wifi_ssid));
+    strncpy(param_wifi_password, kDEFAULT_PASSWORD, sizeof(param_wifi_password));
 }
 
 //---------------------------------------------------------------------------------
 //-- Computes EEPROM CRC
 uint32_t get_eeprom_crc()
 {
-    uint32_t crc = 0L;
-    for (int i = 0 ; i < EEPROM_SPACE; i++) {
+    uint32_t crc  = 0;
+    uint32_t size = 0;
+    //-- Get size of all parameter data
+    for(int i = 0; i < ID_PARAMETER_COUNT; i++) {
+        size += mavParameters[i].length;
+    }
+    //-- Computer CRC
+    for (int i = 0 ; i < size; i++) {
         crc = crc_table[(crc ^ EEPROM.read(i)) & 0xff] ^ (crc >> 8);
     }
     return crc;
@@ -782,14 +859,61 @@ uint32_t get_eeprom_crc()
 //-- Saves all parameters to EEPROM
 void save_all_to_eeprom()
 {
-
+    //-- Init flash space
+    uint8_t* ptr = EEPROM.getDataPtr();
+    memset(ptr, 0, EEPROM_SPACE);
+    //-- Write all paramaters to flash
+    uint32_t address = 0;
+    for(int i = 0; i < ID_PARAMETER_COUNT; i++) {
+        ptr = (uint8_t*)mavParameters[i].value;
+        #ifdef DEBUG
+            Serial1.print("Saving to EEPROM: ");
+            Serial1.print(mavParameters[i].id);
+            Serial1.print(" Value: ");
+            if(mavParameters[i].type == MAV_PARAM_TYPE_UINT32)
+                Serial1.println(*((uint32_t*)mavParameters[i].value));
+            else if(mavParameters[i].type == MAV_PARAM_TYPE_UINT16)
+                Serial1.println(*((uint16_t*)mavParameters[i].value));
+            else
+                Serial1.println(*((int8_t*)mavParameters[i].value));
+        #endif
+        for(int j = 0; j < mavParameters[i].length; j++, address++, ptr++) {
+            EEPROM.write(address, *ptr);
+        }
+    }
+    uint32_t saved_crc = get_eeprom_crc();
+    EEPROM.put(EEPROM_CRC_ADD, saved_crc);
+    EEPROM.commit();
+    #ifdef DEBUG
+        Serial1.print("Saved CRC: ");
+        Serial1.print(saved_crc);
+        Serial1.println("");
+    #endif
 }
 
 //---------------------------------------------------------------------------------
-//-- Saves value to EEPROM
-void save_to_eeprom(uint32_t index)
+//-- Saves all parameters to EEPROM
+void load_all_from_eeprom()
 {
-    //uint32_t address = index * sizeof(uint32_t);
-    //EEPROM.put(address, value);
+    uint32_t address = 0;
+    for(int i = 0; i < ID_PARAMETER_COUNT; i++) {
+        uint8_t* ptr = (uint8_t*)mavParameters[i].value;
+        for(int j = 0; j < mavParameters[i].length; j++, address++, ptr++) {
+            *ptr = EEPROM.read(address);
+        }
+        #ifdef DEBUG
+            Serial1.print("Loading from EEPROM: ");
+            Serial1.print(mavParameters[i].id);
+            Serial1.print(" Value: ");
+            if(mavParameters[i].type == MAV_PARAM_TYPE_UINT32)
+                Serial1.println(*((uint32_t*)mavParameters[i].value));
+            else if(mavParameters[i].type == MAV_PARAM_TYPE_UINT16)
+                Serial1.println(*((uint16_t*)mavParameters[i].value));
+            else
+                Serial1.println(*((int8_t*)mavParameters[i].value));
+        #endif
+    }
+    #ifdef DEBUG
+        Serial1.println("");
+    #endif
 }
-
