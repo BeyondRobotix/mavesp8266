@@ -35,3 +35,7 @@ The ```git clone --recursive``` above not only cloned the MavESP8266 repository 
 ### Wiring it up
 
 User level (as well as wiring) instructions can be found here: https://pixhawk.org/peripherals/8266
+
+### MavLink Protocol
+
+The MavESP8266 handles its own set of parameters and commands. Look at the [PARAMETERS](PARAMETERS.md) page for more information.
