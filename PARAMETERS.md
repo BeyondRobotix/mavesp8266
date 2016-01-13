@@ -9,11 +9,11 @@ If this message is sent to *All Components* (```MAV_COMP_ID_ALL```), or specific
 
 #### MAVLINK_MSG_ID_PARAM_REQUEST_READ
 
-If this message is sent to *All Components*, or specifically to the MavESP8266 component ID, it will return the requested parameter (either by ID or by Index)
+If this message is sent specifically to the MavESP8266 component ID, it will return the requested parameter (either by ID or by Index)
 
 #### MAVLINK_MSG_ID_PARAM_SET
 
-If this message is sent to *All Components*, or specifically to the MavESP8266 component ID, it will set the new value for the specified parameter. Note that this only sets the value for the current session. It does not write the values to EEPROM.
+If this message is sent specifically to the MavESP8266 component ID, it will set the new value for the specified parameter. Note that this only sets the value for the current session. It does not write the values to EEPROM. See MAV_CMD_PREFLIGHT_STORAGE below.
 
 ### Available Parameters
 
