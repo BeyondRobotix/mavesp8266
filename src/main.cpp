@@ -957,5 +957,6 @@ void load_all_from_eeprom()
 void wifi_reboot()
 {
     send_status_message(MAV_SEVERITY_NOTICE, "Rebooting WiFi Bridge.");
+    delay(50);
     ESP.reset();
 }
