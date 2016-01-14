@@ -100,7 +100,6 @@ const char* kHASH_PARAM         = "_HASH_CHECK";
 
 uint32_t    param_sw_version;
 int8_t      param_debug_enabled;
-uint8_t     param_component_id;
 uint32_t    param_wifi_channel;
 uint16_t    param_wifi_udp_hport;
 uint16_t    param_wifi_udp_cport;
@@ -119,7 +118,6 @@ struct stMavEspParameters {
 enum {
     ID_PARAMETER_FWVER = 0,
     ID_PARAMETER_DEBUG,
-    ID_PARAMETER_COMP_ID,
     ID_PARAMETER_CHANNEL,
     ID_PARAMETER_HPORT,
     ID_PARAMETER_CPORT,
@@ -139,7 +137,6 @@ struct stMavEspParameters mavParameters[] = {
 //   ID                 Value (pointer)             Index                   Length                          Type
     {"SW_VER",          &param_sw_version,          ID_PARAMETER_FWVER,     sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
     {"DEBUG_ENABLED",   &param_debug_enabled,       ID_PARAMETER_DEBUG,     sizeof(int8_t),                 MAV_PARAM_TYPE_INT8},
-    {"COMP_ID",         &param_component_id,        ID_PARAMETER_COMP_ID,   sizeof(uint8_t),                MAV_PARAM_TYPE_UINT8},
     {"WIFI_CHANNEL",    &param_wifi_channel,        ID_PARAMETER_CHANNEL,   sizeof(uint32_t),               MAV_PARAM_TYPE_UINT32},
     {"WIFI_UDP_HPORT",  &param_wifi_udp_hport,      ID_PARAMETER_HPORT,     sizeof(uint16_t),               MAV_PARAM_TYPE_UINT16},
     {"WIFI_UDP_CPORT",  &param_wifi_udp_cport,      ID_PARAMETER_CPORT,     sizeof(uint16_t),               MAV_PARAM_TYPE_UINT16},
@@ -191,9 +188,6 @@ mavlink_message_t       uas_message[UAS_QUEUE_SIZE];
 
 //-- Radio Status
 unsigned long           last_status_time    = 0;
-
-//-- Our component ID
-uint8_t                 component_id        = MAV_COMP_ID_UDP_BRIDGE;
 
 //-- 16-Entry CRC Lookup Table
 static uint32_t crc_table[] = {
@@ -263,7 +257,6 @@ void setup() {
 
     //-- Init variables that shouldn't change unless we reboot
     gcs_udp_port = param_wifi_udp_hport;
-    component_id = param_component_id;
 
     //-- Start AP
     WiFi.mode(WIFI_AP);
@@ -456,7 +449,7 @@ bool read_gcs_message()
                             Serial1.print(" ");
                             Serial1.println(param.param_id);
                         #endif
-                        if(param.target_component == component_id) {
+                        if(param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                             handle_param_set(&param);
                             //-- Eat message (don't send it to FC)
                             memset(&gcs_message, 0, sizeof(gcs_message));
@@ -468,10 +461,10 @@ bool read_gcs_message()
                     } else if(gcs_message.msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
                         mavlink_command_long_t cmd;
                         mavlink_msg_command_long_decode(&gcs_message, &cmd);
-                        if(cmd.target_component == MAV_COMP_ID_ALL || cmd.target_component == component_id) {
+                        if(cmd.target_component == MAV_COMP_ID_ALL || cmd.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                             handle_command_long(&cmd);
                             //-- If it was directed to us, eat it and loop
-                            if(cmd.target_component == component_id) {
+                            if(cmd.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                                 //-- Eat message (don't send it to FC)
                                 memset(&gcs_message, 0, sizeof(gcs_message));
                                 msgReceived = false;
@@ -488,7 +481,7 @@ bool read_gcs_message()
                             Serial1.print("MAVLINK_MSG_ID_PARAM_REQUEST_LIST: ");
                             Serial1.println(param.target_component);
                         #endif
-                        if(param.target_component == MAV_COMP_ID_ALL || param.target_component == component_id) {
+                        if(param.target_component == MAV_COMP_ID_ALL || param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                             handle_param_request_list();
                         }
                     //-----------------------------------------------
@@ -504,14 +497,14 @@ bool read_gcs_message()
                             //Serial1.println(param.param_id);
                         #endif
                         //-- This component or all components?
-                        if(param.target_component == MAV_COMP_ID_ALL || param.target_component == component_id) {
+                        if(param.target_component == MAV_COMP_ID_ALL || param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                             //-- If asking for hash, respond and pass through to the UAS
                             if(strncmp(param.param_id, kHASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN) == 0) {
                                 send_parameter(kHASH_PARAM, param_hash_check(), 0xFFFF);
                             } else {
                                 handle_param_request_read(&param);
                                 //-- If this was addressed to me only eat message
-                                if(param.target_component == component_id) {
+                                if(param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                                     //-- Eat message (don't send it to FC)
                                     memset(&gcs_message, 0, sizeof(gcs_message));
                                     msgReceived = false;
@@ -590,7 +583,7 @@ void send_radio_status()
     mavlink_message_t msg;
     mavlink_msg_radio_status_pack(
         system_id,
-        component_id,
+        MAV_COMP_ID_UDP_BRIDGE,
         &msg,
         0xff,   // We don't have access to RSSI
         0xff,   // We don't have access to Remote RSSI
@@ -614,7 +607,7 @@ void send_status_message(uint8_t type, const char* text)
     mavlink_message_t msg;
     mavlink_msg_statustext_pack(
         system_id,
-        component_id,
+        MAV_COMP_ID_UDP_BRIDGE,
         &msg,
         type,
         text
@@ -691,7 +684,7 @@ void send_parameter(uint16_t index)
     mavlink_message_t mmsg;
     mavlink_msg_param_value_encode(
         system_id,
-        component_id,
+        MAV_COMP_ID_UDP_BRIDGE,
         &mmsg,
         &msg
     );
@@ -718,7 +711,7 @@ void send_parameter(const char* id, uint32_t value, uint16_t index)
     mavlink_message_t mmsg;
     mavlink_msg_param_value_encode(
         system_id,
-        component_id,
+        MAV_COMP_ID_UDP_BRIDGE,
         &mmsg,
         &msg
     );
@@ -827,7 +820,7 @@ void handle_command_long(mavlink_command_long_t* cmd)
     mavlink_message_t msg;
     mavlink_msg_command_ack_pack(
         system_id,
-        component_id,
+        MAV_COMP_ID_UDP_BRIDGE,
         &msg,
         cmd->command,
         result
@@ -871,7 +864,6 @@ void set_all_defaults()
 {
     param_sw_version        = (((MAVESP8266_VERSION_MAJOR << 24) & 0xF000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x0F00) | (MAVESP8266_VERSION_BUILD & 0x00FF));
     param_debug_enabled     = 0;
-    param_component_id      = MAV_COMP_ID_UDP_BRIDGE;
     param_wifi_channel      = DEFAULT_WIFI_CHANNEL;
     param_wifi_udp_hport    = DEFAULT_UDP_HPORT;
     param_wifi_udp_cport    = DEFAULT_UDP_CPORT;
