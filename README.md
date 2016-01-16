@@ -1,9 +1,9 @@
 # MavESP8266
 ## ESP8266 WiFi Access Point and MavLink Bridge
 
-This is preliminary work. It was developed using a [NodeMCU v2 Dev Kit](http://www.seeedstudio.com/depot/NodeMCU-v2-Lua-based-ESP8266-development-kit-p-2415.html) as it conveniently provides a secondary UART for debugging. It has been tested with the ESP-01 shipped with the [PixRacer](https://pixhawk.org/modules/pixracer) and it is stable at 921600 baud.
+This was developed using a [NodeMCU v2 Dev Kit](http://www.seeedstudio.com/depot/NodeMCU-v2-Lua-based-ESP8266-development-kit-p-2415.html) as it conveniently provides a secondary UART for debugging. It has been tested with the ESP-01 shipped with the [PixRacer](https://pixhawk.org/modules/pixracer) and it is stable at 921600 baud.
 
-The build enviroment is based on [PlatformIO](http://platformio.org). Follow the instructions found here: http://platformio.org/#!/get-started (only tested on Mac OS) for installing it but skip the ```platform init``` step as this has already been done, modified and it is included in this repo. In summary:
+The build enviroment is based on [PlatformIO](http://platformio.org). Follow the instructions found here: http://platformio.org/#!/get-started (only tested on Mac OS) for installing it but skip the ```platform init``` step as this has already been done, modified and it is included in this repository. In summary:
 
 ```
 sudo pip install -U pip setuptools
@@ -19,7 +19,7 @@ When you run ```platformio run``` for the first time, it will download the toolc
 
 * ```platformio run``` - process/build all targets
 * ```platformio run -e esp12e``` - process/build just the ESP12e target (the NodeMcu v2)
-* ```platformio run -e esp12e -t upload``` - upload firmware to embedded board
+* ```platformio run -e esp12e -t upload``` - build and upload firmware to embedded board
 * ```platformio run -t clean``` - clean project (remove compiled files)
 
 The resulting image(s) can be found in the directory ```.pioenvs``` created during the build process.
