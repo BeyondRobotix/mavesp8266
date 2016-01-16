@@ -50,7 +50,7 @@ extern "C" {
 //-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
 #define MAVESP8266_VERSION_MINOR    0
-#define MAVESP8266_VERSION_BUILD    0
+#define MAVESP8266_VERSION_BUILD    1
 #define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX)
@@ -421,7 +421,7 @@ bool read_gcs_message()
                             gcs_heard_from      = true;
                             gcs_system_id       = gcs_message.sysid;
                             gcs_component_id    = gcs_message.compid;
-                            udp_seq_expected    = gcs_message.seq + 2; //-- For whatver reason, QGC increments this by 2
+                            udp_seq_expected    = gcs_message.seq + 1;
                         }
                     } else {
                         check_upd_errors(&gcs_message);
@@ -760,12 +760,6 @@ uint32_t crc32part(uint8_t* src, uint32_t len, uint32_t crc)
 //-- Keep track of packet loss
 void check_upd_errors(mavlink_message_t* msg)
 {
-#if 0
-
-    This is not working. The sequence is completely out of whack and I cannot count on
-    it to infer packet loss.  It seems QGC sends multiple sets of sequence numbers and
-    even those are not normal. Some are incremented by 2 others by 1.
-
     //-- Don't bother if we have not heard from the GCS (and it's the proper sys/comp ids)
     if(!gcs_heard_from || msg->sysid != gcs_system_id || msg->compid != gcs_component_id) {
         return;
@@ -785,8 +779,7 @@ void check_upd_errors(mavlink_message_t* msg)
         send_status_message(MAV_SEVERITY_DEBUG, debug_message);
     }
     udp_packets_lost += packet_lost_count;
-    udp_seq_expected = msg->seq + 2; //-- For whatver reason, QGC increments this by 2
-#endif
+    udp_seq_expected = msg->seq + 1;
 }
 
 //---------------------------------------------------------------------------------
