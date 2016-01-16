@@ -50,7 +50,8 @@ extern "C" {
 //-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
 #define MAVESP8266_VERSION_MINOR    0
-#define MAVESP8266_VERSION_BUILD    1
+#define MAVESP8266_VERSION_BUILD    0
+#define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX)
 //#define DEBUG
@@ -862,7 +863,7 @@ void init_eeprom()
 //-- Computes EEPROM CRC
 void set_all_defaults()
 {
-    param_sw_version        = (((MAVESP8266_VERSION_MAJOR << 24) & 0xF000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x0F00) | (MAVESP8266_VERSION_BUILD & 0x00FF));
+    param_sw_version        = MAVESP8266_VERSION;
     param_debug_enabled     = 0;
     param_wifi_channel      = DEFAULT_WIFI_CHANNEL;
     param_wifi_udp_hport    = DEFAULT_UDP_HPORT;
@@ -950,6 +951,8 @@ void load_all_from_eeprom()
     #ifdef DEBUG
         Serial1.println("");
     #endif
+    //-- Version if hardwired
+    param_sw_version = MAVESP8266_VERSION;
 }
 
 //---------------------------------------------------------------------------------
