@@ -53,4 +53,4 @@ In addition to parameters, MavESP8266 also supports a few commands, which will b
 
 ##### MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN
 
-* If ```param2``` == 1 It will cause the ESP8266 module to reboot. This is necessary if you want parameters changes to take effect. Out of the above, the only parameter that takes effect immediatly upon changing is **DEBUG_ENABLED**. All other values will only take effect at boot time.
+* If ```param2``` == 1 It will cause the ESP8266 module to reboot. This is necessary if you want parameter changes to take effect. Out of the above, the only parameter that takes effect immediatly upon changing is **DEBUG_ENABLED**. All other values will only take effect at boot time.
