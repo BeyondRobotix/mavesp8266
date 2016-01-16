@@ -13,8 +13,6 @@ cd mavesp8266
 platformio run
 ```
 
-:point_right: I don't like installing Python modules as root so I used ```pip install -U --user platformio```. That gave me some *bad egg* issues with the SCons package, a dependency of PlatformIO. I used ```brew install scons``` instead before running ```pip install -U --user platformio```.
-
 When you run ```platformio run``` for the first time, it will download the toolchains and all necessary libraries automatically.
 
 ### Useful commands:
