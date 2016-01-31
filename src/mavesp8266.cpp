@@ -1,0 +1,80 @@
+/****************************************************************************
+ *
+ * Copyright (c) 2015, 2016 Gus Grubba. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file mavesp8266.cpp
+ * ESP8266 Wifi AP, MavLink UART/UDP Bridge
+ *
+ * @author Gus Grubba <mavlink@grubba.com>
+ */
+
+#include "mavesp8266.h"
+#include "mavesp8266_parameters.h"
+
+//---------------------------------------------------------------------------------
+//-- Base Comm Link
+MavESP8266Bridge::MavESP8266Bridge()
+    : _heard_from(false)
+    , _system_id(0)
+    , _component_id(0)
+    , _seq_expected(0)
+    , _forwardTo(NULL)
+{
+    memset(&_status, 0, sizeof(_status));
+}
+
+//---------------------------------------------------------------------------------
+//-- Initialize
+void
+MavESP8266Bridge::begin(MavESP8266Bridge* forwardTo)
+{
+    _forwardTo  = forwardTo;
+}
+
+//---------------------------------------------------------------------------------
+//-- Check for link errors
+void
+MavESP8266Bridge::_checkLinkErrors(mavlink_message_t* msg)
+{
+    //-- Don't bother if we have not heard from the link (and it's the proper sys/comp ids)
+    if(!_heard_from || msg->sysid != _system_id || msg->compid != _component_id) {
+        return;
+    }
+    uint16_t seq_received = (uint16_t)msg->seq;
+    uint16_t packet_lost_count = 0;
+    //-- Account for overflow during packet loss
+    if(seq_received < _seq_expected) {
+        packet_lost_count = (seq_received + 255) - _seq_expected;
+    } else {
+        packet_lost_count = seq_received - _seq_expected;
+    }
+    _seq_expected = msg->seq + 1;
+    _status.packets_lost += packet_lost_count;
+}
