@@ -47,7 +47,6 @@ MavESP8266GCS::MavESP8266GCS()
     , _last_status_time(0)
 {
     memset(&_message, 0, sizeof(_message));
-    memset(&_status,  0, sizeof(_status));
 }
 
 //---------------------------------------------------------------------------------
