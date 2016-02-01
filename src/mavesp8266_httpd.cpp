@@ -44,6 +44,7 @@
 #include <ESP8266WebServer.h>
 
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
+const char PROGMEM kTEXTHTML[]   = "text/html";
 const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
 const char PROGMEM kUPLOADFORM[] = "<form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>";
 const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body>";
@@ -56,7 +57,7 @@ bool                started     = false;
 void handle_update() {
     webServer.sendHeader("Connection", "close");
     webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-    webServer.send(200, "text/html", FPSTR(kUPLOADFORM));
+    webServer.send(200, FPSTR(kTEXTHTML), FPSTR(kUPLOADFORM));
 }
 
 //---------------------------------------------------------------------------------
@@ -127,10 +128,12 @@ void handle_upload_status() {
 
 //---------------------------------------------------------------------------------
 void handle_getParameters() {
-    String message = "Parameters\n";
+    String message = FPSTR(kHEADER);
+    message += "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
     for(int i = 0; i < MavESP8266Parameters::ID_COUNT; i++) {
+        message += "<tr><td>";
         message += getWorld()->getParameters()->getAt(i)->id;
-        message += ": ";
+        message += "</td>";
         unsigned long val = 0;
         if(getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT32)
             val = (unsigned long)*((uint32_t*)getWorld()->getParameters()->getAt(i)->value);
@@ -138,10 +141,13 @@ void handle_getParameters() {
             val = (unsigned long)*((uint16_t*)getWorld()->getParameters()->getAt(i)->value);
         else
             val = (unsigned long)*((int8_t*)getWorld()->getParameters()->getAt(i)->value);
+        message += "<td>";
         message += val;
-        message += "\n";
+        message += "</td></tr>";
     }
-    webServer.send(200, FPSTR(kTEXTPLAIN), message);
+    message += "</table>";
+    message += "</body>";
+    webServer.send(200, FPSTR(kTEXTHTML), message);
 }
 
 //---------------------------------------------------------------------------------
@@ -182,7 +188,7 @@ void handle_getStatus() {
     message += paramCRC;
     message += "</td></tr></table>";
     message += "</body>";
-    webServer.send(200, "text/html", message);
+    webServer.send(200, FPSTR(kTEXTHTML), message);
 }
 
 //---------------------------------------------------------------------------------

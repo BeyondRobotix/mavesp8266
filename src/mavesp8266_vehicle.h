@@ -52,7 +52,6 @@ public:
     void    readMessage     ();
     void    sendMessage     (mavlink_message_t* message, int count);
     void    sendMessage     (mavlink_message_t* message);
-    uint8_t getQueueStatus  ();
     linkStatus* getStatus   ();
 
 private:

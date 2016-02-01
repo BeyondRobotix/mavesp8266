@@ -84,7 +84,7 @@ public:
     virtual bool    heardFrom       () { return _heard_from;    }
     virtual uint8_t systemID        () { return _system_id;     }
     virtual uint8_t componentID     () { return _component_id;  }
-    virtual linkStatus* getStatus    () { return &_status;       }
+    virtual linkStatus* getStatus   () { return &_status;       }
 protected:
     virtual void    _checkLinkErrors(mavlink_message_t* msg);
 protected:
