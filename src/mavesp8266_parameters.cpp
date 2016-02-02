@@ -279,7 +279,10 @@ MavESP8266Parameters::_initEeprom()
     }
 }
 
-uint32_t MavESP8266Parameters::availableMemory()
+//---------------------------------------------------------------------------------
+// Stupid trick to find out how much RAM is left
+uint32_t
+MavESP8266Parameters::availableMemory()
 {
     //-- Assume a max of 100k
     int size = 1024 * 100;
@@ -288,4 +291,53 @@ uint32_t MavESP8266Parameters::availableMemory()
         size -= 128;
     free(buf);
     return size;
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Parameters::setDebugEnabled(int8_t enabled)
+{
+    _debug_enabled     = enabled;
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Parameters::setWifiChannel(uint32_t channel)
+{
+    _wifi_channel      = channel;
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Parameters::setWifiUdpHport(uint16_t port)
+{
+    _wifi_udp_hport    = port;
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Parameters::setWifiUdpCport(uint16_t port)
+{
+    _wifi_udp_cport    = port;
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Parameters::setWifiSsid(const char* ssid)
+{
+    strncpy(_wifi_ssid, ssid, sizeof(_wifi_ssid));
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Parameters::setWifiPassword(const char* pwd)
+{
+    strncpy(_wifi_password, pwd, sizeof(_wifi_password));
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Parameters::setUartBaudRate(uint32_t baud)
+{
+    _uart_baud_rate = baud;
 }

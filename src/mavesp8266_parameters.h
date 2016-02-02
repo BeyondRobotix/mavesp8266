@@ -91,6 +91,14 @@ public:
     char*       getWifiPassword             ();
     uint32_t    getUartBaudRate             ();
 
+    void        setDebugEnabled             (int8_t enabled);
+    void        setWifiChannel              (uint32_t channel);
+    void        setWifiUdpHport             (uint16_t port);
+    void        setWifiUdpCport             (uint16_t port);
+    void        setWifiSsid                 (const char* ssid);
+    void        setWifiPassword             (const char* pwd);
+    void        setUartBaudRate             (uint32_t baud);
+
     stMavEspParameters* getAt               (int index);
 
     static uint32_t availableMemory         ();
