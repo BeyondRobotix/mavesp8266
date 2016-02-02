@@ -37,3 +37,7 @@ User level (as well as wiring) instructions can be found here: https://pixhawk.o
 ### MavLink Protocol
 
 The MavESP8266 handles its own set of parameters and commands. Look at the [PARAMETERS](PARAMETERS.md) page for more information.
+
+### HTTP Protocol
+
+There are some preliminary URLs that can be used for checking the WiFi Bridge status as well as updating firmware and changing parameters. [You can find it here.](HTTP.md)
