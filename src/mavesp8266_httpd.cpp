@@ -48,10 +48,30 @@ const char PROGMEM kTEXTHTML[]   = "text/html";
 const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
 const char PROGMEM kUPLOADFORM[] = "<form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>";
 const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body>";
+const char PROGMEM kBADARG[]     = "BAD ARGS";
+
+const char* kBAUD   = "baud";
+const char* kPWD    = "pwd";
+const char* kSSID   = "ssid";
+const char* kCPORT  = "cport";
+const char* kHPORT  = "hport";
+const char* kCHANNEL= "channel";
+const char* kDEBUG  = "debug";
+const char* kREBOOT = "reboot";
 
 ESP8266WebServer    webServer(80);
 MavESP8266Update*   updateCB    = NULL;
 bool                started     = false;
+
+//---------------------------------------------------------------------------------
+void returnFail(String msg) {
+    webServer.send(500, FPSTR(kTEXTPLAIN), msg + "\r\n");
+}
+
+//---------------------------------------------------------------------------------
+void respondOK() {
+    webServer.send(200, FPSTR(kTEXTPLAIN), "OK");
+}
 
 //---------------------------------------------------------------------------------
 void handle_update() {
@@ -127,7 +147,8 @@ void handle_upload_status() {
 }
 
 //---------------------------------------------------------------------------------
-void handle_getParameters() {
+void handle_getParameters()
+{
     String message = FPSTR(kHEADER);
     message += "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
     for(int i = 0; i < MavESP8266Parameters::ID_COUNT; i++) {
@@ -151,7 +172,8 @@ void handle_getParameters() {
 }
 
 //---------------------------------------------------------------------------------
-void handle_getStatus() {
+void handle_getStatus()
+{
     static uint32_t mem   = 0;
     static uint32_t flash = 0;
     static char paramCRC[12] = {""};
@@ -192,6 +214,59 @@ void handle_getStatus() {
 }
 
 //---------------------------------------------------------------------------------
+void handle_setParameters()
+{
+    if(webServer.args() == 0) {
+        returnFail(kBADARG);
+        return;
+    }
+    bool ok = false;
+    bool reboot = false;
+    if(webServer.hasArg(kBAUD)) {
+        ok = true;
+        getWorld()->getParameters()->setUartBaudRate(webServer.arg(kBAUD).toInt());
+    }
+    if(webServer.hasArg(kPWD)) {
+        ok = true;
+        getWorld()->getParameters()->setWifiPassword(webServer.arg(kPWD).c_str());
+    }
+    if(webServer.hasArg(kSSID)) {
+        ok = true;
+        getWorld()->getParameters()->setWifiSsid(webServer.arg(kSSID).c_str());
+    }
+    if(webServer.hasArg(kCPORT)) {
+        ok = true;
+        getWorld()->getParameters()->setWifiUdpCport(webServer.arg(kCPORT).toInt());
+    }
+    if(webServer.hasArg(kHPORT)) {
+        ok = true;
+        getWorld()->getParameters()->setWifiUdpHport(webServer.arg(kHPORT).toInt());
+    }
+    if(webServer.hasArg(kCHANNEL)) {
+        ok = true;
+        getWorld()->getParameters()->setWifiChannel(webServer.arg(kCHANNEL).toInt());
+    }
+    if(webServer.hasArg(kDEBUG)) {
+        ok = true;
+        getWorld()->getParameters()->setDebugEnabled(webServer.arg(kDEBUG).toInt());
+    }
+    if(webServer.hasArg(kREBOOT)) {
+        ok = true;
+        reboot = webServer.arg(kREBOOT) == "1";
+    }
+    if(ok) {
+        getWorld()->getParameters()->saveAllToEeprom();
+        //-- Send new parameters back
+        handle_getParameters();
+        if(reboot) {
+            delay(100);
+            ESP.restart();
+        }
+    } else
+        returnFail(kBADARG);
+}
+
+//---------------------------------------------------------------------------------
 MavESP8266Httpd::MavESP8266Httpd()
 {
 
@@ -204,6 +279,7 @@ MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
 {
     updateCB = updateCB_;
     webServer.on("/getparameters",  handle_getParameters);
+    webServer.on("/setparameters",  handle_setParameters);
     webServer.on("/getstatus",      handle_getStatus);
     webServer.on("/update",         handle_update);
     webServer.on("/upload",         HTTP_POST, handle_upload, handle_upload_status);
