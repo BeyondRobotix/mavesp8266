@@ -56,7 +56,7 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
     //-- Start UART connected to UAS
     Serial.begin(getWorld()->getParameters()->getUartBaudRate());
     //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
-#ifdef DEBUG_PRINT
+#ifdef ENABLE_DEBUG
 #ifdef ARDUINO_ESP8266_ESP12
     Serial.swap();
 #endif
@@ -135,12 +135,21 @@ MavESP8266Vehicle::_readMessage()
                         _component_id   = _message[_queue_count].compid;
                         _system_id      = _message[_queue_count].sysid;
                         _seq_expected   = _message[_queue_count].seq + 1;
+                        _last_heartbeat = millis();
                     }
                 } else {
+                    if(_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT)
+                        _last_heartbeat = millis();
                     _checkLinkErrors(&_message[_queue_count]);
                 }
                 break;
             }
+        }
+    }
+    if(!msgReceived) {
+        if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
+            _heard_from = false;
+            getWorld()->getLogger()->log("Heartbeat timeout from Vehicle\n");
         }
     }
     return msgReceived;

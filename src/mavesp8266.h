@@ -43,6 +43,11 @@
 #include <WiFiUdp.h>
 #include <mavlink.h>
 
+ extern "C" {
+    // Espressif SDK
+    #include "user_interface.h"
+}
+
 class MavESP8266Parameters;
 class MavESP8266Vehicle;
 class MavESP8266GCS;
@@ -52,14 +57,22 @@ class MavESP8266GCS;
 #define DEFAULT_UDP_HPORT           14550
 #define DEFAULT_UDP_CPORT           14555
 
+#define HEARTBEAT_TIMEOUT           10 * 1000
+
 //-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
 #define MAVESP8266_VERSION_MINOR    0
 #define MAVESP8266_VERSION_BUILD    3
 #define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
-//-- Debug sent out to DEBUG_PRINT (GPIO02), which is TX only (no RX).
-//#define DEBUG_PRINT Serial1
+//-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX).
+//#define ENABLE_DEBUG
+
+#ifdef ENABLE_DEBUG
+#define DEBUG_LOG(format, ...) do { getWorld()->getLogger()->log(format, ## __VA_ARGS__); } while(0)
+#else
+#define DEBUG_LOG(format, ...) do { } while(0)
+#endif
 
 //---------------------------------------------------------------------------------
 //-- Link Status
@@ -92,8 +105,26 @@ protected:
     uint8_t                 _system_id;
     uint8_t                 _component_id;
     uint8_t                 _seq_expected;
+    uint32_t                _last_heartbeat;
     linkStatus              _status;
     MavESP8266Bridge*       _forwardTo;
+};
+
+//---------------------------------------------------------------------------------
+//-- Logger
+class MavESP8266Log {
+public:
+    MavESP8266Log   ();
+    void            begin           (size_t bufferSize);
+    size_t          log             (const char *format, ...);
+    String          getLog          (uint32_t position);
+    uint32_t        getLogSize      ();
+private:
+    char*           _buffer;
+    size_t          _buffer_size;
+    uint32_t        _log_write;
+    uint32_t        _log_read;
+    uint32_t        _log_posistion;
 };
 
 //---------------------------------------------------------------------------------
@@ -104,6 +135,7 @@ public:
     virtual MavESP8266Parameters*   getParameters   () = 0;
     virtual MavESP8266Vehicle*      getVehicle      () = 0;
     virtual MavESP8266GCS*          getGCS          () = 0;
+    virtual MavESP8266Log*          getLogger       () = 0;
 };
 
 //---------------------------------------------------------------------------------

@@ -103,17 +103,8 @@ MavESP8266GCS::_readMessage()
                     _status.packets_received++;
                     if(_ip[3] == 255) {
                         _ip = _udp.remoteIP();
-                        #ifdef DEBUG_PRINT
-                        DEBUG_PRINT.println();
-                        DEBUG_PRINT.print("Response from GCS. Setting GCS IP to: ");
-                        DEBUG_PRINT.println(_ip);
-                        #endif
+                        getWorld()->getLogger()->log("Response from GCS. Setting GCS IP to: %s\n", _ip.toString().c_str());
                     }
-                    //#ifdef DEBUG_PRINT
-                    //    if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
-                    //        DEBUG_PRINT.print("G");
-                    //    }
-                    //#endif
                     //-- First packets
                     if(!_heard_from) {
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
@@ -121,8 +112,11 @@ MavESP8266GCS::_readMessage()
                             _system_id       = _message.sysid;
                             _component_id    = _message.compid;
                             _seq_expected    = _message.seq + 1;
+                            _last_heartbeat  = millis();
                         }
                     } else {
+                        if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+                            _last_heartbeat = millis();
                         _checkLinkErrors(&_message);
                     }
                     //-- Check for message we might be interested
@@ -130,25 +124,12 @@ MavESP8266GCS::_readMessage()
                     //   TODO: These response messages need to be queued up and sent as part of the main loop and not all
                     //   at once from here.
                     //
-                    #ifdef DEBUG_PRINT
-                        //if(_message.msgid != MAVLINK_MSG_ID_HEARTBEAT) {
-                        //    DEBUG_PRINT.println("");
-                        //    DEBUG_PRINT.print("New Message from QGC: ");
-                        //    DEBUG_PRINT.println(_message.msgid);
-                        //}
-                    #endif
                     //-----------------------------------------------
                     //-- MAVLINK_MSG_ID_PARAM_SET
                     if(_message.msgid == MAVLINK_MSG_ID_PARAM_SET) {
                         mavlink_param_set_t param;
                         mavlink_msg_param_set_decode(&_message, &param);
-                        #ifdef DEBUG_PRINT
-                            DEBUG_PRINT.println("");
-                            DEBUG_PRINT.print("MAVLINK_MSG_ID_PARAM_SET: ");
-                            DEBUG_PRINT.print(param.target_component);
-                            DEBUG_PRINT.print(" ");
-                            DEBUG_PRINT.println(param.param_id);
-                        #endif
+                        DEBUG_LOG("MAVLINK_MSG_ID_PARAM_SET: %u %s\n", param.target_component, param.param_id);
                         if(param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                             _handleParamSet(&param);
                             //-- Eat message (don't send it to FC)
@@ -176,11 +157,7 @@ MavESP8266GCS::_readMessage()
                     } else if(_message.msgid == MAVLINK_MSG_ID_PARAM_REQUEST_LIST) {
                         mavlink_param_request_list_t param;
                         mavlink_msg_param_request_list_decode(&_message, &param);
-                        #ifdef DEBUG_PRINT
-                            DEBUG_PRINT.println("");
-                            DEBUG_PRINT.print("MAVLINK_MSG_ID_PARAM_REQUEST_LIST: ");
-                            DEBUG_PRINT.println(param.target_component);
-                        #endif
+                        DEBUG_LOG("MAVLINK_MSG_ID_PARAM_REQUEST_LIST: %u\n", param.target_component);
                         if(param.target_component == MAV_COMP_ID_ALL || param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                             _handleParamRequestList();
                         }
@@ -189,13 +166,6 @@ MavESP8266GCS::_readMessage()
                     } else if(_message.msgid == MAVLINK_MSG_ID_PARAM_REQUEST_READ) {
                         mavlink_param_request_read_t param;
                         mavlink_msg_param_request_read_decode(&_message, &param);
-                        #ifdef DEBUG_PRINT
-                            //DEBUG_PRINT.println("");
-                            //DEBUG_PRINT.print("MAVLINK_MSG_ID_PARAM_REQUEST_READ: ");
-                            //DEBUG_PRINT.print(param.target_component);
-                            //DEBUG_PRINT.print(" ");
-                            //DEBUG_PRINT.println(param.param_id);
-                        #endif
                         //-- This component or all components?
                         if(param.target_component == MAV_COMP_ID_ALL || param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                             //-- If asking for hash, respond and pass through to the UAS
@@ -217,6 +187,14 @@ MavESP8266GCS::_readMessage()
                     break;
                 }
             }
+        }
+    }
+    if(!msgReceived) {
+        if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
+            _heard_from = false;
+            //-- Start broadcasting again
+            _ip[3] = 255;
+            getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
         }
     }
     return msgReceived;
@@ -339,17 +317,6 @@ MavESP8266GCS::_handleParamRequestRead(mavlink_param_request_read_t* param)
 void
 MavESP8266GCS::_sendParameter(uint16_t index)
 {
-    #ifdef DEBUG_PRINT
-        DEBUG_PRINT.print("Sending Parameter: ");
-        DEBUG_PRINT.print(getWorld()->getParameters()->getAt(index)->id);
-        DEBUG_PRINT.print(" Value: ");
-        if(getWorld()->getParameters()->getAt(index)->type == MAV_PARAM_TYPE_UINT32)
-            DEBUG_PRINT.println(*((uint32_t*)getWorld()->getParameters()->getAt(index)->value));
-        else if(getWorld()->getParameters()->getAt(index)->type == MAV_PARAM_TYPE_UINT16)
-            DEBUG_PRINT.println(*((uint16_t*)getWorld()->getParameters()->getAt(index)->value));
-        else
-            DEBUG_PRINT.println(*((int8_t*)getWorld()->getParameters()->getAt(index)->value));
-    #endif
     //-- Build message
     mavlink_param_value_t msg;
     msg.param_count = MavESP8266Parameters::ID_COUNT;
@@ -374,12 +341,6 @@ MavESP8266GCS::_sendParameter(uint16_t index)
 void
 MavESP8266GCS::_sendParameter(const char* id, uint32_t value, uint16_t index)
 {
-    #ifdef DEBUG_PRINT
-        DEBUG_PRINT.print("Sending Parameter: ");
-        DEBUG_PRINT.print(id);
-        DEBUG_PRINT.print(" Value: ");
-        DEBUG_PRINT.println(value);
-    #endif
     //-- Build message
     mavlink_param_value_t msg;
     msg.param_count = MavESP8266Parameters::ID_COUNT;

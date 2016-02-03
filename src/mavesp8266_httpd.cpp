@@ -49,19 +49,41 @@ const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
 const char PROGMEM kUPLOADFORM[] = "<form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>";
 const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body>";
 const char PROGMEM kBADARG[]     = "BAD ARGS";
+const char PROGMEM kAPPJSON[]    = "application/json";
 
-const char* kBAUD   = "baud";
-const char* kPWD    = "pwd";
-const char* kSSID   = "ssid";
-const char* kCPORT  = "cport";
-const char* kHPORT  = "hport";
-const char* kCHANNEL= "channel";
-const char* kDEBUG  = "debug";
-const char* kREBOOT = "reboot";
+const char* kBAUD       = "baud";
+const char* kPWD        = "pwd";
+const char* kSSID       = "ssid";
+const char* kCPORT      = "cport";
+const char* kHPORT      = "hport";
+const char* kCHANNEL    = "channel";
+const char* kDEBUG      = "debug";
+const char* kREBOOT     = "reboot";
+const char* kPOSITION   = "position";
+
+const char* kFlashMaps[7] = {
+    "512KB (256/256)",
+    "256KB",
+    "1MB (512/512)",
+    "2MB (512/512)",
+    "4MB (512/512)",
+    "2MB (1024/1024)",
+    "4MB (1024/1024)"
+};
+
+static uint32_t flash = 0;
+static char paramCRC[12] = {""};
 
 ESP8266WebServer    webServer(80);
 MavESP8266Update*   updateCB    = NULL;
 bool                started     = false;
+
+//---------------------------------------------------------------------------------
+void setNoCacheHeaders() {
+    webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    webServer.sendHeader("Pragma", "no-cache");
+    webServer.sendHeader("Expires", "0");
+}
 
 //---------------------------------------------------------------------------------
 void returnFail(String msg) {
@@ -174,15 +196,10 @@ void handle_getParameters()
 //---------------------------------------------------------------------------------
 void handle_getStatus()
 {
-    static uint32_t mem   = 0;
-    static uint32_t flash = 0;
-    static char paramCRC[12] = {""};
-    if(!mem)
-        mem = getWorld()->getParameters()->availableMemory();
     if(!flash)
         flash = ESP.getFreeSketchSpace();
     if(!paramCRC[0]) {
-        sprintf(paramCRC, "%08X", getWorld()->getParameters()->paramHashCheck());
+        snprintf(paramCRC, sizeof(paramCRC), "%08X", getWorld()->getParameters()->paramHashCheck());
     }
     linkStatus* gcsStatus = getWorld()->getGCS()->getStatus();
     linkStatus* vehicleStatus = getWorld()->getVehicle()->getStatus();
@@ -205,12 +222,93 @@ void handle_getStatus()
     message += "<p>System Status</p><table><tr><td width=\"240\">Flash Memory Left</td><td>";
     message += flash;
     message += "</td></tr><tr><td>RAM Left</td><td>";
-    message += mem;
+    message += String(ESP.getFreeHeap());
     message += "</td></tr><tr><td>Parameters CRC</td><td>";
     message += paramCRC;
     message += "</td></tr></table>";
     message += "</body>";
+    setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
+}
+
+//---------------------------------------------------------------------------------
+void handle_getJLog()
+{
+    uint32_t position = 0;
+    if(webServer.hasArg(kPOSITION)) {
+        position = webServer.arg(kPOSITION).toInt();
+    }
+    String logText = getWorld()->getLogger()->getLog(position);
+    char jStart[128];
+    snprintf(jStart, 128, "{\"len\":%d, \"start\":%d, \"text\": \"", logText.length(), position);
+    String payLoad = jStart;
+    payLoad += logText;
+    payLoad += "\"}";
+    webServer.send(200, FPSTR(kAPPJSON), payLoad);
+}
+
+//---------------------------------------------------------------------------------
+void handle_getJSysInfo()
+{
+    if(!flash)
+        flash = ESP.getFreeSketchSpace();
+    if(!paramCRC[0]) {
+        snprintf(paramCRC, sizeof(paramCRC), "%08X", getWorld()->getParameters()->paramHashCheck());
+    }
+    uint32_t fid = spi_flash_get_id();
+    char message[512];
+    snprintf(message, 512,
+        "{ "
+        "\"size\": \"%s\", "
+        "\"id\": \"0x%02lX 0x%04lX\", "
+        "\"flashfree\": \"%u\", "
+        "\"heapfree\": \"%u\", "
+        "\"logsize\": \"%u\", "
+        "\"paramcrc\": \"%s\""
+        " }",
+        kFlashMaps[system_get_flash_size_map()],
+        fid & 0xff, (fid & 0xff00) | ((fid >> 16) & 0xff),
+        flash,
+        ESP.getFreeHeap(),
+        getWorld()->getLogger()->getLogSize(),
+        paramCRC
+    );
+    webServer.send(200, "application/json", message);
+}
+
+//---------------------------------------------------------------------------------
+void handle_getJSysStatus()
+{
+    bool reset = false;
+    if(webServer.hasArg("r")) {
+        reset = webServer.arg("r").toInt() != 0;
+    }
+    linkStatus* gcsStatus = getWorld()->getGCS()->getStatus();
+    linkStatus* vehicleStatus = getWorld()->getVehicle()->getStatus();
+    if(reset) {
+        memset(gcsStatus,     0, sizeof(linkStatus));
+        memset(vehicleStatus, 0, sizeof(linkStatus));
+    }
+    char message[512];
+    snprintf(message, 512,
+        "{ "
+        "\"gpackets\": \"%u\", "
+        "\"gsent\": \"%u\", "
+        "\"glost\": \"%u\", "
+        "\"vpackets\": \"%u\", "
+        "\"vsent\": \"%u\", "
+        "\"vlost\": \"%u\", "
+        "\"radio\": \"%u\""
+        " }",
+        gcsStatus->packets_received,
+        gcsStatus->packets_sent,
+        gcsStatus->packets_lost,
+        vehicleStatus->packets_received,
+        vehicleStatus->packets_sent,
+        vehicleStatus->packets_lost,
+        gcsStatus->radio_status_sent
+    );
+    webServer.send(200, "application/json", message);
 }
 
 //---------------------------------------------------------------------------------
@@ -267,6 +365,23 @@ void handle_setParameters()
 }
 
 //---------------------------------------------------------------------------------
+//-- 404
+void handle_notFound(){
+    String message = "File Not Found\n\n";
+    message += "URI: ";
+    message += webServer.uri();
+    message += "\nMethod: ";
+    message += (webServer.method() == HTTP_GET) ? "GET" : "POST";
+    message += "\nArguments: ";
+    message += webServer.args();
+    message += "\n";
+    for (uint8_t i = 0; i < webServer.args(); i++){
+        message += " " + webServer.argName(i) + ": " + webServer.arg(i) + "\n";
+    }
+    webServer.send(404, FPSTR(kTEXTPLAIN), message);
+}
+
+//---------------------------------------------------------------------------------
 MavESP8266Httpd::MavESP8266Httpd()
 {
 
@@ -281,8 +396,12 @@ MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
     webServer.on("/getparameters",  handle_getParameters);
     webServer.on("/setparameters",  handle_setParameters);
     webServer.on("/getstatus",      handle_getStatus);
+    webServer.on("/info.json",      handle_getJSysInfo);
+    webServer.on("/status.json",    handle_getJSysStatus);
+    webServer.on("/log.json",       handle_getJLog);
     webServer.on("/update",         handle_update);
     webServer.on("/upload",         HTTP_POST, handle_upload, handle_upload_status);
+    webServer.onNotFound(           handle_notFound);
     webServer.begin();
 }
 

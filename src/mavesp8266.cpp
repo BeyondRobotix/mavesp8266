@@ -45,6 +45,7 @@ MavESP8266Bridge::MavESP8266Bridge()
     , _system_id(0)
     , _component_id(0)
     , _seq_expected(0)
+    , _last_heartbeat(0)
     , _forwardTo(NULL)
 {
     memset(&_status, 0, sizeof(_status));
@@ -77,4 +78,102 @@ MavESP8266Bridge::_checkLinkErrors(mavlink_message_t* msg)
     }
     _seq_expected = msg->seq + 1;
     _status.packets_lost += packet_lost_count;
+}
+
+
+//---------------------------------------------------------------------------------
+MavESP8266Log::MavESP8266Log()
+    : _buffer(NULL)
+    , _buffer_size(0)
+    , _log_write(0)
+    , _log_read(0)
+    , _log_posistion(0)
+{
+
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Log::begin(size_t bufferSize)
+{
+#ifdef ENABLE_DEBUG
+    Serial1.begin(115200);
+#endif
+#if 0
+    //-- TODO
+    _buffer_size = bufferSize & 0xFFFE;
+    _buffer = (char*)malloc(_buffer_size);
+#endif
+}
+
+//---------------------------------------------------------------------------------
+size_t
+MavESP8266Log::log(const char *format, ...) {
+    va_list arg;
+    va_start(arg, format);
+    char temp[1024];
+    size_t len = ets_vsnprintf(temp, 1024, format, arg);
+#ifdef ENABLE_DEBUG
+    Serial1.print(temp);
+#endif
+#if 0
+    //-- TODO
+    if(_buffer) {
+        for(int i = 0; i < len; i++) {
+            _buffer[_log_write] = temp[i];
+            _log_write = (_log_write + 1) % _buffer_size;
+            if (_log_read == _log_read) {
+                _log_read = (_log_read + 1) % _buffer_size;
+                _log_posistion++;
+            }
+        }
+    }
+#endif
+    va_end(arg);
+    return len;
+}
+
+//---------------------------------------------------------------------------------
+String
+MavESP8266Log::getLog(uint32_t position) {
+    String buffer;
+#if 0
+    //-- TODO
+    uint32_t len = getLogSize();
+    if (position < _log_posistion) {
+        position = 0;
+    } else if (position >= _log_posistion + len) {
+        position = len;
+    } else {
+        position = position - _log_posistion;
+    }
+    int r = (_log_read + position) % _buffer_size;
+    while (r != _log_write) {
+        uint8_t c = _buffer[r];
+        if (c == '\\' || c == '"') {
+            buffer += '\\';
+            buffer += c;
+        } else if (c < ' ') {
+            char tmp[12];
+            snprintf(tmp, 12, "\\u%04x", c);
+            buffer += tmp;
+        } else {
+            buffer += c;
+        }
+        r = (r + 1) % _buffer_size;
+    }
+#endif
+    return buffer;
+}
+
+//---------------------------------------------------------------------------------
+uint32_t
+MavESP8266Log::getLogSize()
+{
+#if 0
+    //-- TODO
+    uint32_t len = (_log_write + _buffer_size - _log_read) % _buffer_size;
+    return len;
+#endif
+    return 0;
 }
