@@ -100,8 +100,6 @@ public:
     void        setUartBaudRate             (uint32_t baud);
 
     stMavEspParameters* getAt               (int index);
-
-    static uint32_t availableMemory         ();
     
 private:
     uint32_t    _crc32part                  (uint8_t* value, uint32_t len, uint32_t crc);

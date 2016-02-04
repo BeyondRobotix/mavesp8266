@@ -41,11 +41,6 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
 
-extern "C" {
-    // Espressif SDK
-    #include "user_interface.h"
-}
-
 #define GPIO02  2
 
 #ifndef DEBUG_PRINT
@@ -67,16 +62,18 @@ public:
     }
     void updateCompleted()
     {
-
+        //-- TODO
     }
     void updateError    ()
     {
-
+        //-- TODO
     }
     bool isUpdating     () { return _isUpdating; }
 private:
     bool _isUpdating;
 };
+
+
 
 //-- Singletons
 IPAddress               localIP;
@@ -85,6 +82,7 @@ MavESP8266GCS           GCS;
 MavESP8266Vehicle       Vehicle;
 MavESP8266Httpd         updateServer;
 MavESP8266UpdateImp     updateStatus;
+MavESP8266Log           Logger;
 
 //---------------------------------------------------------------------------------
 //-- Accessors
@@ -93,6 +91,7 @@ public:
     MavESP8266Parameters*   getParameters   () { return &Parameters;    }
     MavESP8266Vehicle*      getVehicle      () { return &Vehicle;       }
     MavESP8266GCS*          getGCS          () { return &GCS;           }
+    MavESP8266Log*          getLogger       () { return &Logger;        }
 };
 
 MavESP8266WorldImp      World;
@@ -102,37 +101,31 @@ MavESP8266World* getWorld()
     return &World;
 }
 
+
 //---------------------------------------------------------------------------------
 //-- Wait for a DHCPD client
 void wait_for_client() {
-#ifdef DEBUG_PRINT
-    DEBUG_PRINT.println("Waiting for a client...");
+    DEBUG_LOG("Waiting for a client...\n");
     int wcount = 0;
-#endif
     uint8 client_count = wifi_softap_get_station_num();
     while (!client_count) {
-#ifdef DEBUG_PRINT
-        DEBUG_PRINT.print(".");
+        #ifdef ENABLE_DEBUG
+        Serial1.print(".");
         if(++wcount > 80) {
             wcount = 0;
-            DEBUG_PRINT.println();
+            Serial1.println();
         }
-#endif
+        #endif
         delay(1000);
         client_count = wifi_softap_get_station_num();
     }
-#ifdef DEBUG_PRINT
-    DEBUG_PRINT.println();
-    DEBUG_PRINT.print("Got ");
-    DEBUG_PRINT.print(client_count);
-    DEBUG_PRINT.println(" client(s).");
-#endif
+    DEBUG_LOG("Got %d client(s)\n", client_count);
 }
 
 //---------------------------------------------------------------------------------
 //-- Check for reset pin
 void check_reset() {
-#ifndef DEBUG_PRINT
+#ifndef ENABLE_DEBUG
     //-- Test for "Reset To Factory"
     /* Needs testing
     int reset = digitalRead(GPIO02);
@@ -149,20 +142,16 @@ void check_reset() {
 //-- Set things up
 void setup() {
     delay(1000);
-#ifndef DEBUG_PRINT
+    Logger.begin(2048);
+#ifndef ENABLE_DEBUG
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     //   We only use it for non bebug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
     pinMode(GPIO02, INPUT_PULLUP);
     reset_state = digitalRead(GPIO02);
 #endif
-#ifdef DEBUG_PRINT
-    DEBUG_PRINT.begin(115200);
-    DEBUG_PRINT.println();
-    DEBUG_PRINT.println("Configuring access point...");
-    DEBUG_PRINT.print("Free Sketch Space: ");
-    DEBUG_PRINT.println(ESP.getFreeSketchSpace());
-#endif
+    DEBUG_LOG("\nConfiguring access point...\n");
+    DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
     Parameters.begin();
     //-- Start AP
     WiFi.mode(WIFI_AP);
@@ -172,25 +161,17 @@ void setup() {
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     IPAddress gcs_ip(localIP);
     gcs_ip[3] = 255;
-#ifdef DEBUG_PRINT
-    DEBUG_PRINT.print("AP IP address: ");
-    DEBUG_PRINT.println(localIP);
-    DEBUG_PRINT.print("Broadcast IP: ");
-    DEBUG_PRINT.println(gcs_ip);
-    DEBUG_PRINT.println("Waiting for DHCPD...");
-#endif
+    DEBUG_LOG("Waiting for DHCPD...\n");
     dhcp_status dstat = wifi_station_dhcpc_status();
     while (dstat != DHCP_STARTED) {
-#ifdef DEBUG_PRINT
-        DEBUG_PRINT.print(".");
-#endif
+        #ifdef ENABLE_DEBUG
+        Serial1.print(".");
+        #endif
         delay(500);
         dstat = wifi_station_dhcpc_status();
     }
     wait_for_client();
-#ifdef DEBUG_PRINT
-    DEBUG_PRINT.println("Start WiFi Bridge");
-#endif
+    DEBUG_LOG("Start WiFi Bridge\n");
     //-- Initialize Comm Links
     GCS.begin((MavESP8266Bridge*)&Vehicle, gcs_ip);
     Vehicle.begin((MavESP8266Bridge*)&GCS);
@@ -205,7 +186,9 @@ void loop() {
         GCS.readMessage();
         delay(0);
         Vehicle.readMessage();
+        delay(0);
         check_reset();
+        delay(0);
     }
     updateServer.checkUpdates();
 }

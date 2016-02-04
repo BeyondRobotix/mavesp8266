@@ -280,20 +280,6 @@ MavESP8266Parameters::_initEeprom()
 }
 
 //---------------------------------------------------------------------------------
-// Stupid trick to find out how much RAM is left
-uint32_t
-MavESP8266Parameters::availableMemory()
-{
-    //-- Assume a max of 100k
-    int size = 1024 * 100;
-    byte* buf;
-    while((buf = (byte *) malloc(size)) == NULL)
-        size -= 128;
-    free(buf);
-    return size;
-}
-
-//---------------------------------------------------------------------------------
 void
 MavESP8266Parameters::setDebugEnabled(int8_t enabled)
 {
