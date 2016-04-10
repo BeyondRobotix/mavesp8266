@@ -41,7 +41,7 @@
 #include "mavesp8266.h"
 
 //-- UDP Outgoing Packet Queue
-#define UAS_QUEUE_SIZE          5
+#define UAS_QUEUE_SIZE          2
 #define UAS_QUEUE_TIMEOUT       5 // 5ms
 
 class MavESP8266Vehicle : public MavESP8266Bridge {

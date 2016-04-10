@@ -214,6 +214,7 @@ MavESP8266GCS::sendMessage(mavlink_message_t* message, int count) {
         _status.packets_sent++;
     }
     _udp.endPacket();
+    delay(0);
 }
 
 //---------------------------------------------------------------------------------
@@ -229,7 +230,7 @@ void
 MavESP8266GCS::_sendRadioStatus()
 {
     linkStatus* st = _forwardTo->getStatus();
-    //-- Build message    
+    //-- Build message
     mavlink_message_t msg;
     mavlink_msg_radio_status_pack(
         _forwardTo->systemID(),
@@ -255,7 +256,7 @@ MavESP8266GCS::_sendStatusMessage(uint8_t type, const char* text)
     if(!getWorld()->getParameters()->getDebugEnabled() && type == MAV_SEVERITY_DEBUG) {
         return;
     }
-    //-- Build message    
+    //-- Build message
     mavlink_message_t msg;
     mavlink_msg_statustext_pack(
         _forwardTo->systemID(),
@@ -371,6 +372,7 @@ MavESP8266GCS::_sendSingleUdpMessage(mavlink_message_t* msg)
     _udp.write((uint8_t*)(void*)buf, len);
     _udp.endPacket();
     _status.packets_sent++;
+    delay(0);
 }
 
 //---------------------------------------------------------------------------------
@@ -412,7 +414,6 @@ MavESP8266GCS::_handleCmdLong(mavlink_command_long_t* cmd)
         result
     );
     _sendSingleUdpMessage(&msg);
-    delay(0);
     if(reboot) {
         _wifiReboot();
     }
