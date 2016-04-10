@@ -187,8 +187,8 @@ void loop() {
         delay(0);
         Vehicle.readMessage();
         delay(0);
-        check_reset();
-        delay(0);
+        //check_reset();
+        //delay(0);
     }
     updateServer.checkUpdates();
 }
