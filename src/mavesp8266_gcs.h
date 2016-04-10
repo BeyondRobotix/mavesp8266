@@ -60,7 +60,7 @@ private:
     void    _sendParameter          (const char* id, uint32_t value, uint16_t index);
     void    _sendSingleUdpMessage   (mavlink_message_t* msg);
     void    _checkUdpErrors         (mavlink_message_t* msg);
-    void    _handleCmdLong          (mavlink_command_long_t* cmd);
+    void    _handleCmdLong          (mavlink_command_long_t* cmd, uint8_t compID);
     void    _wifiReboot             ();
 
 private:

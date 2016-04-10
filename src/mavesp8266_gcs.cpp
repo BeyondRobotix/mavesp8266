@@ -143,7 +143,7 @@ MavESP8266GCS::_readMessage()
                         mavlink_command_long_t cmd;
                         mavlink_msg_command_long_decode(&_message, &cmd);
                         if(cmd.target_component == MAV_COMP_ID_ALL || cmd.target_component == MAV_COMP_ID_UDP_BRIDGE) {
-                            _handleCmdLong(&cmd);
+                            _handleCmdLong(&cmd, cmd.target_component);
                             //-- If it was directed to us, eat it and loop
                             if(cmd.target_component == MAV_COMP_ID_UDP_BRIDGE) {
                                 //-- Eat message (don't send it to FC)
@@ -378,7 +378,7 @@ MavESP8266GCS::_sendSingleUdpMessage(mavlink_message_t* msg)
 //---------------------------------------------------------------------------------
 //-- Handle Commands
 void
-MavESP8266GCS::_handleCmdLong(mavlink_command_long_t* cmd)
+MavESP8266GCS::_handleCmdLong(mavlink_command_long_t* cmd, uint8_t compID)
 {
     bool reboot = false;
     uint8_t result = MAV_RESULT_UNSUPPORTED;
@@ -405,15 +405,17 @@ MavESP8266GCS::_handleCmdLong(mavlink_command_long_t* cmd)
         }
     }
     //-- Response
-    mavlink_message_t msg;
-    mavlink_msg_command_ack_pack(
-        _forwardTo->systemID(),
-        MAV_COMP_ID_UDP_BRIDGE,
-        &msg,
-        cmd->command,
-        result
-    );
-    _sendSingleUdpMessage(&msg);
+    if(compID == MAV_COMP_ID_UDP_BRIDGE) {
+        mavlink_message_t msg;
+        mavlink_msg_command_ack_pack(
+            _forwardTo->systemID(),
+            MAV_COMP_ID_UDP_BRIDGE,
+            &msg,
+            cmd->command,
+            result
+        );
+        _sendSingleUdpMessage(&msg);
+    }
     if(reboot) {
         _wifiReboot();
     }
