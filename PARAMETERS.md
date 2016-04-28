@@ -23,6 +23,7 @@ If this message is sent specifically to the MavESP8266 component ID, it will set
 | ------------- | -------------- | ----------- |
 | SW_VER  | MAV_PARAM_TYPE_UINT32 | Firmware Version (Read Only) |
 | DEBUG_ENABLED | MAV_PARAM_TYPE_INT8  | Enable Debug Messages (1) |
+| WIFI_MODE | MAV_PARAM_TYPE_INT8 | WiFi Operating Mode (3) |
 | WIFI_CHANNEL  | MAV_PARAM_TYPE_UINT32 | AP WiFi Channel (default to 11) |
 | WIFI_UDP_HPORT | MAV_PARAM_TYPE_UINT16 | GCS UDP Port (default to 14550) |
 | WIFI_UDP_CPORT | MAV_PARAM_TYPE_UINT16 | Local UDP Port (default to 14555)  |
@@ -40,6 +41,7 @@ If this message is sent specifically to the MavESP8266 component ID, it will set
 
 * (1) If debug is enabled, debug messages are sent using ```MAVLINK_MSG_ID_STATUSTEXT``` with a proper ```MAV_SEVERITY_DEBUG``` type. Other messages types, ```MAV_SEVERITY_NOTICE``` for example, are sent regardless.
 * (2) MavLink parameter messages only support a 32-Bit parameter (be it a float, an uint32_t, etc.) In other to fit a 16-character SSID and a 16-character Password, 4 paramaters are used for each. The 32-Bit storage is used to contain 4 bytes for the string.
+* (3) The mode defaults to 0. Set to 0 to act as an access point. Set to 1 to connect to an existing WiFi network using the same ssid and password.
 
 #### MAVLINK_MSG_ID_COMMAND_LONG
 

@@ -50,6 +50,7 @@ const char* kDEFAULT_PASSWORD   = "pixracer";
 
 uint32_t    _sw_version;
 int8_t      _debug_enabled;
+int8_t      _wifi_mode;
 uint32_t    _wifi_channel;
 uint16_t    _wifi_udp_hport;
 uint16_t    _wifi_udp_cport;
@@ -63,6 +64,7 @@ uint32_t    _flash_left;
  struct stMavEspParameters mavParameters[] = {
      {"SW_VER",          &_sw_version,          MavESP8266Parameters::ID_FWVER,     sizeof(uint32_t),   MAV_PARAM_TYPE_UINT32,  true },
      {"DEBUG_ENABLED",   &_debug_enabled,       MavESP8266Parameters::ID_DEBUG,     sizeof(int8_t),     MAV_PARAM_TYPE_INT8,    false},
+     {"WIFI_MODE",       &_wifi_mode,           MavESP8266Parameters::ID_MODE,      sizeof(int8_t),     MAV_PARAM_TYPE_INT8,    false},
      {"WIFI_CHANNEL",    &_wifi_channel,        MavESP8266Parameters::ID_CHANNEL,   sizeof(uint32_t),   MAV_PARAM_TYPE_UINT32,  false},
      {"WIFI_UDP_HPORT",  &_wifi_udp_hport,      MavESP8266Parameters::ID_HPORT,     sizeof(uint16_t),   MAV_PARAM_TYPE_UINT16,  false},
      {"WIFI_UDP_CPORT",  &_wifi_udp_cport,      MavESP8266Parameters::ID_CPORT,     sizeof(uint16_t),   MAV_PARAM_TYPE_UINT16,  false},
@@ -111,6 +113,7 @@ MavESP8266Parameters::getAt(int index)
 //-- Parameters
 uint32_t    MavESP8266Parameters::getSwVersion      () { return _sw_version;        }
 int8_t      MavESP8266Parameters::getDebugEnabled   () { return _debug_enabled;     }
+int8_t      MavESP8266Parameters::getWifiMode       () { return _wifi_mode;         }
 uint32_t    MavESP8266Parameters::getWifiChannel    () { return _wifi_channel;      }
 uint16_t    MavESP8266Parameters::getWifiUdpHport   () { return _wifi_udp_hport;    }
 uint16_t    MavESP8266Parameters::getWifiUdpCport   () { return _wifi_udp_cport;    }
@@ -125,6 +128,7 @@ MavESP8266Parameters::resetToDefaults()
 {
     _sw_version        = MAVESP8266_VERSION;
     _debug_enabled     = 0;
+    _wifi_mode         = WIFI_MODE_AP;
     _wifi_channel      = DEFAULT_WIFI_CHANNEL;
     _wifi_udp_hport    = DEFAULT_UDP_HPORT;
     _wifi_udp_cport    = DEFAULT_UDP_CPORT;
@@ -284,6 +288,13 @@ void
 MavESP8266Parameters::setDebugEnabled(int8_t enabled)
 {
     _debug_enabled     = enabled;
+}
+
+//---------------------------------------------------------------------------------
+void
+MavESP8266Parameters::setWifiMode(int8_t mode)
+{
+    _wifi_mode         = mode;
 }
 
 //---------------------------------------------------------------------------------
