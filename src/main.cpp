@@ -159,13 +159,21 @@ void setup() {
       WiFi.mode(WIFI_STA);
       WiFi.begin(Parameters.getWifiSsid(), Parameters.getWifiPassword());
 
-      while (WiFi.status() != WL_CONNECTED) {
+      //-- Wait a minute to connect
+      for(int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++){
           #ifdef ENABLE_DEBUG
           Serial.print(".");
           #endif
           delay(500);
       }
-      localIP = WiFi.localIP();
+
+      if(WiFi.status() == WL_CONNECTED){
+          localIP = WiFi.localIP();
+      } else {
+          //-- Fall back to AP mode if no connection could be established
+          WiFi.disconnect(true);
+          Parameters.setWifiMode(WIFI_MODE_AP);
+      }
     }
 
     if(Parameters.getWifiMode() == WIFI_MODE_AP){
