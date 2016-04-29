@@ -166,7 +166,9 @@ void setup() {
           delay(500);
       }
       localIP = WiFi.localIP();
-    } else {
+    }
+
+    if(Parameters.getWifiMode() == WIFI_MODE_AP){
       //-- Start AP
       WiFi.mode(WIFI_AP);
       WiFi.encryptionType(AUTH_WPA2_PSK);

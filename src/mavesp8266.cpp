@@ -140,7 +140,7 @@ MavESP8266Log::getLog(uint32_t position) {
     }
     int r = (_log_offset - position) % _buffer_size;
     while(len > 0) {
-        uint8_t c = _buffer[r];
+        char c = _buffer[r];
         //-- Copy as JSON encoded characters
         if (c == '\\' || c == '"') {
             buffer += '\\';
@@ -160,7 +160,7 @@ MavESP8266Log::getLog(uint32_t position) {
 
 //---------------------------------------------------------------------------------
 uint32_t
-MavESP8266Log::getLogSize() // at most _buffer_size
+MavESP8266Log::getLogSize()
 {
     return min(_log_position, _buffer_size);
 }
