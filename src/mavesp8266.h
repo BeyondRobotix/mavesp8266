@@ -115,16 +115,15 @@ protected:
 class MavESP8266Log {
 public:
     MavESP8266Log   ();
-    void            begin           (size_t bufferSize);
-    size_t          log             (const char *format, ...);
-    String          getLog          (uint32_t position);
-    uint32_t        getLogSize      ();
+    void            begin           (size_t bufferSize); // Allocate a buffer for the log
+    size_t          log             (const char *format, ...); // Add to the log
+    String          getLog          (uint32_t position); // Get the log starting at a position
+    uint32_t        getLogSize      (); // Number of bytes available at the current log position
 private:
-    char*           _buffer;
-    size_t          _buffer_size;
-    uint32_t        _log_write;
-    uint32_t        _log_read;
-    uint32_t        _log_posistion;
+    char*           _buffer; // Raw memory
+    size_t          _buffer_size; // Size of the above memory
+    uint32_t        _log_offset; // Position in the buffer
+    uint32_t        _log_position; // Absolute position in the log since boot
 };
 
 //---------------------------------------------------------------------------------

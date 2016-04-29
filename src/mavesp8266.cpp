@@ -85,9 +85,8 @@ MavESP8266Bridge::_checkLinkErrors(mavlink_message_t* msg)
 MavESP8266Log::MavESP8266Log()
     : _buffer(NULL)
     , _buffer_size(0)
-    , _log_write(0)
-    , _log_read(0)
-    , _log_posistion(0)
+    , _log_offset(0)
+    , _log_position(0)
 {
 
 }
@@ -99,11 +98,8 @@ MavESP8266Log::begin(size_t bufferSize)
 #ifdef ENABLE_DEBUG
     Serial1.begin(115200);
 #endif
-#if 0
-    //-- TODO
     _buffer_size = bufferSize & 0xFFFE;
     _buffer = (char*)malloc(_buffer_size);
-#endif
 }
 
 //---------------------------------------------------------------------------------
@@ -116,19 +112,14 @@ MavESP8266Log::log(const char *format, ...) {
 #ifdef ENABLE_DEBUG
     Serial1.print(temp);
 #endif
-#if 0
-    //-- TODO
+
     if(_buffer) {
         for(int i = 0; i < len; i++) {
-            _buffer[_log_write] = temp[i];
-            _log_write = (_log_write + 1) % _buffer_size;
-            if (_log_read == _log_read) {
-                _log_read = (_log_read + 1) % _buffer_size;
-                _log_posistion++;
-            }
+            _buffer[_log_offset] = temp[i];
+            _log_offset = (_log_offset + 1) % _buffer_size;
+            _log_position++;
         }
     }
-#endif
     va_end(arg);
     return len;
 }
@@ -137,19 +128,20 @@ MavESP8266Log::log(const char *format, ...) {
 String
 MavESP8266Log::getLog(uint32_t position) {
     String buffer;
-#if 0
-    //-- TODO
+
     uint32_t len = getLogSize();
-    if (position < _log_posistion) {
-        position = 0;
-    } else if (position >= _log_posistion + len) {
+    if (position <= _log_position - len) { //-- Can't read data that was overriden
         position = len;
+    } else if (position >= _log_position) { //-- Can't read data from the future
+        position = 0;
     } else {
-        position = position - _log_posistion;
+        //-- Convert absolute position to index relative to buffer start
+        position = _log_position - position;
     }
-    int r = (_log_read + position) % _buffer_size;
-    while (r != _log_write) {
+    int r = (_log_offset - position) % _buffer_size;
+    while(len > 0) {
         uint8_t c = _buffer[r];
+        //-- Copy as JSON encoded characters
         if (c == '\\' || c == '"') {
             buffer += '\\';
             buffer += c;
@@ -161,19 +153,14 @@ MavESP8266Log::getLog(uint32_t position) {
             buffer += c;
         }
         r = (r + 1) % _buffer_size;
+        len--;
     }
-#endif
     return buffer;
 }
 
 //---------------------------------------------------------------------------------
 uint32_t
-MavESP8266Log::getLogSize()
+MavESP8266Log::getLogSize() // at most _buffer_size
 {
-#if 0
-    //-- TODO
-    uint32_t len = (_log_write + _buffer_size - _log_read) % _buffer_size;
-    return len;
-#endif
-    return 0;
+    return min(_log_position, _buffer_size);
 }
