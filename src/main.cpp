@@ -43,7 +43,7 @@
 
 #define GPIO02  2
 
-#ifndef DEBUG_PRINT
+#ifndef ENABLE_DEBUG
 uint8_t                 reset_state;
 #endif
 
@@ -144,7 +144,7 @@ void setup() {
     Logger.begin(2048);
 #ifndef ENABLE_DEBUG
     //-- Initialized GPIO02 (Used for "Reset To Factory")
-    //   We only use it for non bebug because GPIO02 is used as a serial
+    //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
     pinMode(GPIO02, INPUT_PULLUP);
     reset_state = digitalRead(GPIO02);

@@ -41,7 +41,7 @@
 #include "mavesp8266_parameters.h"
 #include "crc.h"
 
-const char* kDEFAULT_SSDI       = "PixRacer";
+const char* kDEFAULT_SSID       = "PixRacer";
 const char* kDEFAULT_PASSWORD   = "pixracer";
 
 //-- Reserved space for EEPROM persistence. A change in this will cause all values to reset to defaults.
@@ -133,7 +133,7 @@ MavESP8266Parameters::resetToDefaults()
     _wifi_udp_hport    = DEFAULT_UDP_HPORT;
     _wifi_udp_cport    = DEFAULT_UDP_CPORT;
     _uart_baud_rate    = DEFAULT_UART_SPEED;
-    strncpy(_wifi_ssid, kDEFAULT_SSDI, sizeof(_wifi_ssid));
+    strncpy(_wifi_ssid, kDEFAULT_SSID, sizeof(_wifi_ssid));
     strncpy(_wifi_password, kDEFAULT_PASSWORD, sizeof(_wifi_password));
     _flash_left = ESP.getFreeSketchSpace();
 }
