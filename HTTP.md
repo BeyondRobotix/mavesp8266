@@ -34,8 +34,10 @@ There are the supported parameters:
 | hport | 14550  | GCS UDP Port | http://192.168.4.1/setparameters?hport=14550 |
 | mode | 0  | Set to AP Mode (0) or Station Mode (1) | http://192.168.4.1/setparameters?mode=1 |
 | pwd | pixracer  | WiFi AP Password | http://192.168.4.1/setparameters?pwd=pixracer |
+| pwdsta | PixRacer  | WiFi STA Password | http://192.168.4.1/setparameters?pwdsta=PixRacer |
 | reboot | 0  | Reboot the WiFi Bridge | http://192.168.4.1/setparameters?reboot=1 |
 | ssid | PixRacer  | WiFi AP SSID | http://192.168.4.1/setparameters?ssid=PixRacer |
+| ssidsta | PixRacer  | WiFi STA SSID | http://192.168.4.1/setparameters?ssidsta=PixRacer |
 
 You can combine any number of parameters into one request. For example:
 
