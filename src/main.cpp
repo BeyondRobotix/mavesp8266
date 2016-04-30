@@ -41,6 +41,8 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
 
+#include <ESP8266mDNS.h>
+
 #define GPIO02  2
 
 #ifndef ENABLE_DEBUG
@@ -153,7 +155,6 @@ void setup() {
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
     Parameters.begin();
 
-
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
       //-- Connect to an existing network
       WiFi.mode(WIFI_STA);
@@ -177,27 +178,34 @@ void setup() {
     }
 
     if(Parameters.getWifiMode() == WIFI_MODE_AP){
-      //-- Start AP
-      WiFi.mode(WIFI_AP);
-      WiFi.encryptionType(AUTH_WPA2_PSK);
-      WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
-      localIP = WiFi.softAPIP();
-      //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
-      DEBUG_LOG("Waiting for DHCPD...\n");
-      dhcp_status dstat = wifi_station_dhcpc_status();
-      while (dstat != DHCP_STARTED) {
-          #ifdef ENABLE_DEBUG
-          Serial1.print(".");
-          #endif
-          delay(500);
-          dstat = wifi_station_dhcpc_status();
-      }
-      wait_for_client();
+        //-- Start AP
+        WiFi.mode(WIFI_AP);
+        WiFi.encryptionType(AUTH_WPA2_PSK);
+        WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
+        localIP = WiFi.softAPIP();
+        //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
+        DEBUG_LOG("Waiting for DHCPD...\n");
+        dhcp_status dstat = wifi_station_dhcpc_status();
+        while (dstat != DHCP_STARTED) {
+            #ifdef ENABLE_DEBUG
+            Serial1.print(".");
+            #endif
+            delay(500);
+            dstat = wifi_station_dhcpc_status();
+        }
+        wait_for_client();
     }
 
-
-    DEBUG_LOG("Start WiFi Bridge\n");
+    //-- Boost power to Max
+    WiFi.setOutputPower(20.5);
+    //-- MDNS
+    char mdsnName[256];
+    sprintf(mdsnName, "MavEsp8266-%d.%d.%d.%d",localIP[0],localIP[1],localIP[2],localIP[3]);
+    MDNS.begin(mdsnName);
+    MDNS.addService("http", "tcp", 80);
     //-- Initialize Comm Links
+    DEBUG_LOG("Start WiFi Bridge\n");
+    Parameters.setLocalIPAddress(localIP);
     IPAddress gcs_ip(localIP);
     gcs_ip[3] = 255;
     GCS.begin((MavESP8266Bridge*)&Vehicle, gcs_ip);

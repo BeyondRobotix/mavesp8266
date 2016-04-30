@@ -68,6 +68,7 @@ public:
         ID_CHANNEL,
         ID_HPORT,
         ID_CPORT,
+        ID_IPADDRESS,
         ID_SSID1,
         ID_SSID2,
         ID_SSID3,
@@ -104,6 +105,7 @@ public:
     void        setWifiSsid                 (const char* ssid);
     void        setWifiPassword             (const char* pwd);
     void        setUartBaudRate             (uint32_t baud);
+    void        setLocalIPAddress           (uint32_t ipAddress);
 
     stMavEspParameters* getAt               (int index);
 

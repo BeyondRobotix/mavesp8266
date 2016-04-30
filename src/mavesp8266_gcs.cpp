@@ -108,6 +108,8 @@ MavESP8266GCS::_readMessage()
                     //-- First packets
                     if(!_heard_from) {
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+                            //-- We no longer need DHCP
+                            wifi_softap_dhcps_stop();
                             _heard_from      = true;
                             _system_id       = _message.sysid;
                             _component_id    = _message.compid;
@@ -191,8 +193,9 @@ MavESP8266GCS::_readMessage()
     }
     if(!msgReceived) {
         if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
+            //-- Restart DHCP and start broadcasting again
+            wifi_softap_dhcps_start();
             _heard_from = false;
-            //-- Start broadcasting again
             _ip[3] = 255;
             getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
         }

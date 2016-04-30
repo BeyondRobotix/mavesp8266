@@ -54,6 +54,7 @@ int8_t      _wifi_mode;
 uint32_t    _wifi_channel;
 uint16_t    _wifi_udp_hport;
 uint16_t    _wifi_udp_cport;
+uint32_t    _wifi_ip_address;
 char        _wifi_ssid[16];
 char        _wifi_password[16];
 uint32_t    _uart_baud_rate;
@@ -68,6 +69,7 @@ uint32_t    _flash_left;
      {"WIFI_CHANNEL",    &_wifi_channel,        MavESP8266Parameters::ID_CHANNEL,   sizeof(uint32_t),   MAV_PARAM_TYPE_UINT32,  false},
      {"WIFI_UDP_HPORT",  &_wifi_udp_hport,      MavESP8266Parameters::ID_HPORT,     sizeof(uint16_t),   MAV_PARAM_TYPE_UINT16,  false},
      {"WIFI_UDP_CPORT",  &_wifi_udp_cport,      MavESP8266Parameters::ID_CPORT,     sizeof(uint16_t),   MAV_PARAM_TYPE_UINT16,  false},
+     {"WIFI_IPADDRESS",  &_wifi_ip_address,     MavESP8266Parameters::ID_IPADDRESS, sizeof(uint32_t),   MAV_PARAM_TYPE_UINT32,  true },
      {"WIFI_SSID1",      &_wifi_ssid[0],        MavESP8266Parameters::ID_SSID1,     sizeof(uint32_t),   MAV_PARAM_TYPE_UINT32,  false},
      {"WIFI_SSID2",      &_wifi_ssid[4],        MavESP8266Parameters::ID_SSID2,     sizeof(uint32_t),   MAV_PARAM_TYPE_UINT32,  false},
      {"WIFI_SSID3",      &_wifi_ssid[8],        MavESP8266Parameters::ID_SSID3,     sizeof(uint32_t),   MAV_PARAM_TYPE_UINT32,  false},
@@ -96,6 +98,14 @@ MavESP8266Parameters::begin()
 {
     EEPROM.begin(EEPROM_SPACE);
     _initEeprom();
+}
+
+//---------------------------------------------------------------------------------
+//-- Initialize
+void
+MavESP8266Parameters::setLocalIPAddress(uint32_t ipAddress)
+{
+    _wifi_ip_address = ipAddress;
 }
 
 //---------------------------------------------------------------------------------
