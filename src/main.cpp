@@ -200,7 +200,7 @@ void setup() {
     WiFi.setOutputPower(20.5);
     //-- MDNS
     char mdsnName[256];
-    sprintf(mdsnName, "MavEsp8266-%d.%d.%d.%d",localIP[0],localIP[1],localIP[2],localIP[3]);
+    sprintf(mdsnName, "MavEsp8266-%d",localIP[3]);
     MDNS.begin(mdsnName);
     MDNS.addService("http", "tcp", 80);
     //-- Initialize Comm Links
