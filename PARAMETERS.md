@@ -27,6 +27,7 @@ If this message is sent specifically to the MavESP8266 component ID, it will set
 | WIFI_CHANNEL  | MAV_PARAM_TYPE_UINT32 | AP WiFi Channel (default to 11) |
 | WIFI_UDP_HPORT | MAV_PARAM_TYPE_UINT16 | GCS UDP Port (default to 14550) |
 | WIFI_UDP_CPORT | MAV_PARAM_TYPE_UINT16 | Local UDP Port (default to 14555)  |
+| WIFI_IPADDRESS | MAV_PARAM_TYPE_UINT32 | Local IP Address (default to 192.168.4.1 when in AP Mode) (Read Only) |
 | WIFI_SSID1 | MAV_PARAM_TYPE_UINT32 | WiFi AP SSID (2) |
 | WIFI_SSID2 | MAV_PARAM_TYPE_UINT32 | |
 | WIFI_SSID3 | MAV_PARAM_TYPE_UINT32 | |
