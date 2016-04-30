@@ -38,8 +38,11 @@
 #ifndef MAVESP8266_PARAMETERS_H
 #define MAVESP8266_PARAMETERS_H
 
-//-- Constants
+#define WIFI_MODE_AP 0
+#define WIFI_MODE_STA 1
 
+//-- Constants
+#define DEFAULT_WIFI_MODE       WIFI_MODE_AP
 #define DEFAULT_UART_SPEED      921600
 #define DEFAULT_WIFI_CHANNEL    11
 #define DEFAULT_UDP_HPORT       14550
@@ -61,6 +64,7 @@ public:
     enum {
         ID_FWVER = 0,
         ID_DEBUG,
+        ID_MODE,
         ID_CHANNEL,
         ID_HPORT,
         ID_CPORT,
@@ -84,6 +88,7 @@ public:
 
     uint32_t    getSwVersion                ();
     int8_t      getDebugEnabled             ();
+    int8_t      getWifiMode                 ();
     uint32_t    getWifiChannel              ();
     uint16_t    getWifiUdpHport             ();
     uint16_t    getWifiUdpCport             ();
@@ -92,6 +97,7 @@ public:
     uint32_t    getUartBaudRate             ();
 
     void        setDebugEnabled             (int8_t enabled);
+    void        setWifiMode                 (int8_t mode);
     void        setWifiChannel              (uint32_t channel);
     void        setWifiUdpHport             (uint16_t port);
     void        setWifiUdpCport             (uint16_t port);
@@ -100,7 +106,7 @@ public:
     void        setUartBaudRate             (uint32_t baud);
 
     stMavEspParameters* getAt               (int index);
-    
+
 private:
     uint32_t    _crc32part                  (uint8_t* value, uint32_t len, uint32_t crc);
     uint32_t    _getEepromCrc               ();

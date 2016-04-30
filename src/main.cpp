@@ -43,7 +43,7 @@
 
 #define GPIO02  2
 
-#ifndef DEBUG_PRINT
+#ifndef ENABLE_DEBUG
 uint8_t                 reset_state;
 #endif
 
@@ -101,7 +101,6 @@ MavESP8266World* getWorld()
     return &World;
 }
 
-
 //---------------------------------------------------------------------------------
 //-- Wait for a DHCPD client
 void wait_for_client() {
@@ -145,7 +144,7 @@ void setup() {
     Logger.begin(2048);
 #ifndef ENABLE_DEBUG
     //-- Initialized GPIO02 (Used for "Reset To Factory")
-    //   We only use it for non bebug because GPIO02 is used as a serial
+    //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
     pinMode(GPIO02, INPUT_PULLUP);
     reset_state = digitalRead(GPIO02);
@@ -153,26 +152,54 @@ void setup() {
     DEBUG_LOG("\nConfiguring access point...\n");
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
     Parameters.begin();
-    //-- Start AP
-    WiFi.mode(WIFI_AP);
-    WiFi.encryptionType(AUTH_WPA2_PSK);
-    WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
-    localIP = WiFi.softAPIP();
-    //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
-    IPAddress gcs_ip(localIP);
-    gcs_ip[3] = 255;
-    DEBUG_LOG("Waiting for DHCPD...\n");
-    dhcp_status dstat = wifi_station_dhcpc_status();
-    while (dstat != DHCP_STARTED) {
-        #ifdef ENABLE_DEBUG
-        Serial1.print(".");
-        #endif
-        delay(500);
-        dstat = wifi_station_dhcpc_status();
+
+
+    if(Parameters.getWifiMode() == WIFI_MODE_STA){
+      //-- Connect to an existing network
+      WiFi.mode(WIFI_STA);
+      WiFi.begin(Parameters.getWifiSsid(), Parameters.getWifiPassword());
+
+      //-- Wait a minute to connect
+      for(int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++){
+          #ifdef ENABLE_DEBUG
+          Serial.print(".");
+          #endif
+          delay(500);
+      }
+
+      if(WiFi.status() == WL_CONNECTED){
+          localIP = WiFi.localIP();
+      } else {
+          //-- Fall back to AP mode if no connection could be established
+          WiFi.disconnect(true);
+          Parameters.setWifiMode(WIFI_MODE_AP);
+      }
     }
-    wait_for_client();
+
+    if(Parameters.getWifiMode() == WIFI_MODE_AP){
+      //-- Start AP
+      WiFi.mode(WIFI_AP);
+      WiFi.encryptionType(AUTH_WPA2_PSK);
+      WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
+      localIP = WiFi.softAPIP();
+      //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
+      DEBUG_LOG("Waiting for DHCPD...\n");
+      dhcp_status dstat = wifi_station_dhcpc_status();
+      while (dstat != DHCP_STARTED) {
+          #ifdef ENABLE_DEBUG
+          Serial1.print(".");
+          #endif
+          delay(500);
+          dstat = wifi_station_dhcpc_status();
+      }
+      wait_for_client();
+    }
+
+
     DEBUG_LOG("Start WiFi Bridge\n");
     //-- Initialize Comm Links
+    IPAddress gcs_ip(localIP);
+    gcs_ip[3] = 255;
     GCS.begin((MavESP8266Bridge*)&Vehicle, gcs_ip);
     Vehicle.begin((MavESP8266Bridge*)&GCS);
     //-- Initialize Update Server

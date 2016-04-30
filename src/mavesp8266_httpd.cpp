@@ -60,6 +60,7 @@ const char* kCHANNEL    = "channel";
 const char* kDEBUG      = "debug";
 const char* kREBOOT     = "reboot";
 const char* kPOSITION   = "position";
+const char* kMODE       = "mode";
 
 const char* kFlashMaps[7] = {
     "512KB (256/256)",
@@ -347,6 +348,10 @@ void handle_setParameters()
     if(webServer.hasArg(kDEBUG)) {
         ok = true;
         getWorld()->getParameters()->setDebugEnabled(webServer.arg(kDEBUG).toInt());
+    }
+    if(webServer.hasArg(kMODE)) {
+        ok = true;
+        getWorld()->getParameters()->setWifiMode(webServer.arg(kMODE).toInt());
     }
     if(webServer.hasArg(kREBOOT)) {
         ok = true;

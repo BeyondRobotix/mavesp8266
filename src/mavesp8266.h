@@ -62,7 +62,7 @@ class MavESP8266GCS;
 //-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
 #define MAVESP8266_VERSION_MINOR    0
-#define MAVESP8266_VERSION_BUILD    5
+#define MAVESP8266_VERSION_BUILD    6
 #define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX).
@@ -115,16 +115,15 @@ protected:
 class MavESP8266Log {
 public:
     MavESP8266Log   ();
-    void            begin           (size_t bufferSize);
-    size_t          log             (const char *format, ...);
-    String          getLog          (uint32_t position);
-    uint32_t        getLogSize      ();
+    void            begin           (size_t bufferSize); // Allocate a buffer for the log
+    size_t          log             (const char *format, ...); // Add to the log
+    String          getLog          (uint32_t position); // Get the log starting at a position
+    uint32_t        getLogSize      (); // Number of bytes available at the current log position
 private:
-    char*           _buffer;
-    size_t          _buffer_size;
-    uint32_t        _log_write;
-    uint32_t        _log_read;
-    uint32_t        _log_posistion;
+    char*           _buffer; // Raw memory
+    size_t          _buffer_size; // Size of the above memory
+    uint32_t        _log_offset; // Position in the buffer
+    uint32_t        _log_position; // Absolute position in the log since boot
 };
 
 //---------------------------------------------------------------------------------
