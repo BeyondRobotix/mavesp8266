@@ -156,25 +156,23 @@ void setup() {
     Parameters.begin();
 
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
-      //-- Connect to an existing network
-      WiFi.mode(WIFI_STA);
-      WiFi.begin(Parameters.getWifiSsid(), Parameters.getWifiPassword());
-
-      //-- Wait a minute to connect
-      for(int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++){
-          #ifdef ENABLE_DEBUG
-          Serial.print(".");
-          #endif
-          delay(500);
-      }
-
-      if(WiFi.status() == WL_CONNECTED){
-          localIP = WiFi.localIP();
-      } else {
-          //-- Fall back to AP mode if no connection could be established
-          WiFi.disconnect(true);
-          Parameters.setWifiMode(WIFI_MODE_AP);
-      }
+        //-- Connect to an existing network
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
+        //-- Wait a minute to connect
+        for(int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++) {
+            #ifdef ENABLE_DEBUG
+            Serial.print(".");
+            #endif
+            delay(500);
+        }
+        if(WiFi.status() == WL_CONNECTED) {
+            localIP = WiFi.localIP();
+        } else {
+            //-- Fall back to AP mode if no connection could be established
+            WiFi.disconnect(true);
+            Parameters.setWifiMode(WIFI_MODE_AP);
+        }
     }
 
     if(Parameters.getWifiMode() == WIFI_MODE_AP){
@@ -183,7 +181,6 @@ void setup() {
         WiFi.encryptionType(AUTH_WPA2_PSK);
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
         localIP = WiFi.softAPIP();
-        //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
         DEBUG_LOG("Waiting for DHCPD...\n");
         dhcp_status dstat = wifi_station_dhcpc_status();
         while (dstat != DHCP_STARTED) {
@@ -207,6 +204,7 @@ void setup() {
     DEBUG_LOG("Start WiFi Bridge\n");
     Parameters.setLocalIPAddress(localIP);
     IPAddress gcs_ip(localIP);
+    //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip[3] = 255;
     GCS.begin((MavESP8266Bridge*)&Vehicle, gcs_ip);
     Vehicle.begin((MavESP8266Bridge*)&GCS);
@@ -221,7 +219,8 @@ void loop() {
         GCS.readMessage();
         delay(0);
         Vehicle.readMessage();
-        delay(0);
+        //-- TODO
+        //delay(0);
         //check_reset();
         //delay(0);
     }
