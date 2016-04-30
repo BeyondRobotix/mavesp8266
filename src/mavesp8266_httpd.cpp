@@ -54,6 +54,8 @@ const char PROGMEM kAPPJSON[]    = "application/json";
 const char* kBAUD       = "baud";
 const char* kPWD        = "pwd";
 const char* kSSID       = "ssid";
+const char* kPWDSTA     = "pwdsta";
+const char* kSSIDSTA    = "ssidsta";
 const char* kCPORT      = "cport";
 const char* kHPORT      = "hport";
 const char* kCHANNEL    = "channel";
@@ -332,6 +334,14 @@ void handle_setParameters()
     if(webServer.hasArg(kSSID)) {
         ok = true;
         getWorld()->getParameters()->setWifiSsid(webServer.arg(kSSID).c_str());
+    }
+    if(webServer.hasArg(kPWDSTA)) {
+        ok = true;
+        getWorld()->getParameters()->setWifiStaPassword(webServer.arg(kPWDSTA).c_str());
+    }
+    if(webServer.hasArg(kSSIDSTA)) {
+        ok = true;
+        getWorld()->getParameters()->setWifiStaSsid(webServer.arg(kSSIDSTA).c_str());
     }
     if(webServer.hasArg(kCPORT)) {
         ok = true;

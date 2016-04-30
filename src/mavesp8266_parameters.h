@@ -77,6 +77,14 @@ public:
         ID_PASS2,
         ID_PASS3,
         ID_PASS4,
+        ID_SSIDSTA1,
+        ID_SSIDSTA2,
+        ID_SSIDSTA3,
+        ID_SSIDSTA4,
+        ID_PASSSTA1,
+        ID_PASSSTA2,
+        ID_PASSSTA3,
+        ID_PASSSTA4,
         ID_UART,
         ID_COUNT
     };
@@ -95,6 +103,8 @@ public:
     uint16_t    getWifiUdpCport             ();
     char*       getWifiSsid                 ();
     char*       getWifiPassword             ();
+    char*       getWifiStaSsid              ();
+    char*       getWifiStaPassword          ();
     uint32_t    getUartBaudRate             ();
 
     void        setDebugEnabled             (int8_t enabled);
@@ -104,6 +114,8 @@ public:
     void        setWifiUdpCport             (uint16_t port);
     void        setWifiSsid                 (const char* ssid);
     void        setWifiPassword             (const char* pwd);
+    void        setWifiStaSsid              (const char* ssid);
+    void        setWifiStaPassword          (const char* pwd);
     void        setUartBaudRate             (uint32_t baud);
     void        setLocalIPAddress           (uint32_t ipAddress);
 
