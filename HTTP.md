@@ -28,13 +28,14 @@ There are the supported parameters:
 | Key  | Default Value | Description | Example |
 | ------------- | -------------- | -------------- | -------------- |
 | baud  | 921600 | UAS UART Link Baud Rate | http://192.168.4.1/setparameters?baud=921600 |
-| pwd | pixracer  | WiFi AP Password | http://192.168.4.1/setparameters?pwd=pixracer |
-| ssid | PixRacer  | WiFi AP SSID | http://192.168.4.1/setparameters?ssid=PixRacer |
-| cport | 14555  | Local UDP Port | http://192.168.4.1/setparameters?cport=14555 |
-| hport | 14550  | GCS UDP Port | http://192.168.4.1/setparameters?hport=14550 |
 | channel | 11  | AP WiFi Channel | http://192.168.4.1/setparameters?channel=11 |
+| cport | 14555  | Local UDP Port | http://192.168.4.1/setparameters?cport=14555 |
 | debug | 0  | Enable Debug Messages | http://192.168.4.1/setparameters?debug=0 |
+| hport | 14550  | GCS UDP Port | http://192.168.4.1/setparameters?hport=14550 |
+| mode | 0  | Set to AP Mode (0) or Station Mode (1) | http://192.168.4.1/setparameters?mode=1 |
+| pwd | pixracer  | WiFi AP Password | http://192.168.4.1/setparameters?pwd=pixracer |
 | reboot | 0  | Reboot the WiFi Bridge | http://192.168.4.1/setparameters?reboot=1 |
+| ssid | PixRacer  | WiFi AP SSID | http://192.168.4.1/setparameters?ssid=PixRacer |
 
 You can combine any number of parameters into one request. For example:
 
