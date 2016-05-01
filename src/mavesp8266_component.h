@@ -29,39 +29,35 @@
  ****************************************************************************/
 
 /**
- * @file mavesp8266_gcs.h
+ * @file mavesp8266_component.h
  * ESP8266 Wifi AP, MavLink UART/UDP Bridge
  *
  * @author Gus Grubba <mavlink@grubba.com>
  */
 
-#ifndef MAVESP8266_GCS_H
-#define MAVESP8266_GCS_H
+#ifndef MAVESP8266_COMPONENT_H
+#define MAVESP8266_COMPONENT_H
 
 #include "mavesp8266.h"
 
-class MavESP8266GCS : public MavESP8266Bridge {
+class MavESP8266Component {
 public:
-    MavESP8266GCS();
+    MavESP8266Component();
 
-    void    begin                   (MavESP8266Bridge* forwardTo, IPAddress gcsIP);
-    void    readMessage             ();
-    void    sendMessage             (mavlink_message_t* message, int count);
-    void    sendMessage             (mavlink_message_t* message);
+    //- Returns true if the component consumed the message
+    bool handleMessage        (MavESP8266Bridge* sender, mavlink_message_t* message);
 
 private:
-    bool    _readMessage            ();
-    void    _sendRadioStatus        ();
+    void    _sendStatusMessage      (MavESP8266Bridge* sender, uint8_t type, const char* text);
+    void    _handleParamSet         (MavESP8266Bridge* sender, mavlink_param_set_t* param);
+    void    _handleParamRequestList (MavESP8266Bridge* sender);
+    void    _handleParamRequestRead (MavESP8266Bridge* sender, mavlink_param_request_read_t* param);
+    void    _sendParameter          (MavESP8266Bridge* sender, uint16_t index);
+    void    _sendParameter          (MavESP8266Bridge* sender, const char* id, uint32_t value, uint16_t index);
 
-    void    _sendSingleUdpMessage   (mavlink_message_t* msg);
-    void    _checkUdpErrors         (mavlink_message_t* msg);
+    void    _handleCmdLong          (MavESP8266Bridge* sender, mavlink_command_long_t* cmd, uint8_t compID);
 
-private:
-    WiFiUDP             _udp;
-    IPAddress           _ip;
-    uint16_t            _udp_port;
-    mavlink_message_t   _message;
-    unsigned long       _last_status_time;
+    void    _wifiReboot             (MavESP8266Bridge* sender);
 };
 
 #endif

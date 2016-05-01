@@ -38,6 +38,7 @@
 #include "mavesp8266.h"
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_parameters.h"
+#include "mavesp8266_component.h"
 
 //---------------------------------------------------------------------------------
 MavESP8266Vehicle::MavESP8266Vehicle()
@@ -142,6 +143,15 @@ MavESP8266Vehicle::_readMessage()
                         _last_heartbeat = millis();
                     _checkLinkErrors(&_message[_queue_count]);
                 }
+
+                //-- Check for message we might be interested
+                if(getWorld()->getComponent()->handleMessage(this, _message)){
+                    //-- Eat message (don't send it to GCS)
+                    memset(&_message, 0, sizeof(_message));
+                    msgReceived = false;
+                    continue;
+                }
+
                 break;
             }
         }

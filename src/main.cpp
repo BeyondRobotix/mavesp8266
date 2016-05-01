@@ -40,6 +40,7 @@
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
+#include "mavesp8266_component.h"
 
 #include <ESP8266mDNS.h>
 
@@ -79,6 +80,7 @@ private:
 
 //-- Singletons
 IPAddress               localIP;
+MavESP8266Component     Component;
 MavESP8266Parameters    Parameters;
 MavESP8266GCS           GCS;
 MavESP8266Vehicle       Vehicle;
@@ -91,6 +93,7 @@ MavESP8266Log           Logger;
 class MavESP8266WorldImp : public MavESP8266World {
 public:
     MavESP8266Parameters*   getParameters   () { return &Parameters;    }
+    MavESP8266Component*    getComponent    () { return &Component;     }
     MavESP8266Vehicle*      getVehicle      () { return &Vehicle;       }
     MavESP8266GCS*          getGCS          () { return &GCS;           }
     MavESP8266Log*          getLogger       () { return &Logger;        }

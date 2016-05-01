@@ -49,6 +49,7 @@
 }
 
 class MavESP8266Parameters;
+class MavESP8266Component;
 class MavESP8266Vehicle;
 class MavESP8266GCS;
 
@@ -133,6 +134,7 @@ class MavESP8266World {
 public:
     virtual ~MavESP8266World(){;}
     virtual MavESP8266Parameters*   getParameters   () = 0;
+    virtual MavESP8266Component*    getComponent    () = 0;
     virtual MavESP8266Vehicle*      getVehicle      () = 0;
     virtual MavESP8266GCS*          getGCS          () = 0;
     virtual MavESP8266Log*          getLogger       () = 0;
