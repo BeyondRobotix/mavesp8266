@@ -143,14 +143,17 @@ void check_reset() {
 //-- Set things up
 void setup() {
     delay(1000);
-    Logger.begin(2048);
-#ifndef ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
+    Serial1.begin(115200);
+#else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
     pinMode(GPIO02, INPUT_PULLUP);
     reset_state = digitalRead(GPIO02);
 #endif
+    Logger.begin(2048);
+
     DEBUG_LOG("\nConfiguring access point...\n");
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
     Parameters.begin();

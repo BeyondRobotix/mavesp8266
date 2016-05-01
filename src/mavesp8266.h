@@ -117,8 +117,9 @@ public:
     MavESP8266Log   ();
     void            begin           (size_t bufferSize); // Allocate a buffer for the log
     size_t          log             (const char *format, ...); // Add to the log
-    String          getLog          (uint32_t position); // Get the log starting at a position
+    String          getLog          (uint32_t* pStart, uint32_t* pLen); // Get the log starting at a position
     uint32_t        getLogSize      (); // Number of bytes available at the current log position
+    uint32_t        getPosition     ();
 private:
     char*           _buffer; // Raw memory
     size_t          _buffer_size; // Size of the above memory
