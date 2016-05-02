@@ -46,6 +46,7 @@ MavESP8266Bridge::MavESP8266Bridge()
     , _component_id(0)
     , _seq_expected(0)
     , _last_heartbeat(0)
+    , _last_status_time(0)
     , _forwardTo(NULL)
 {
     memset(&_status, 0, sizeof(_status));
@@ -79,7 +80,6 @@ MavESP8266Bridge::_checkLinkErrors(mavlink_message_t* msg)
     _seq_expected = msg->seq + 1;
     _status.packets_lost += packet_lost_count;
 }
-
 
 //---------------------------------------------------------------------------------
 MavESP8266Log::MavESP8266Log()

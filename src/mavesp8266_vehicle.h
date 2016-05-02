@@ -41,7 +41,8 @@
 #include "mavesp8266.h"
 
 //-- UDP Outgoing Packet Queue
-#define UAS_QUEUE_SIZE          2
+#define UAS_QUEUE_SIZE          60
+#define UAS_QUEUE_THRESHOLD     20
 #define UAS_QUEUE_TIMEOUT       5 // 5ms
 
 class MavESP8266Vehicle : public MavESP8266Bridge {
@@ -50,9 +51,12 @@ public:
 
     void    begin           (MavESP8266Bridge* forwardTo);
     void    readMessage     ();
-    void    sendMessage     (mavlink_message_t* message, int count);
-    void    sendMessage     (mavlink_message_t* message);
+    int     sendMessage     (mavlink_message_t* message, int count);
+    int     sendMessage     (mavlink_message_t* message);
     linkStatus* getStatus   ();
+
+protected:
+    void    _sendRadioStatus();
 
 private:
     bool    _readMessage    ();
@@ -60,6 +64,7 @@ private:
 private:
     int                     _queue_count;
     unsigned long           _queue_time;
+    float                   _buffer_status;
     mavlink_message_t       _message[UAS_QUEUE_SIZE];
 };
 

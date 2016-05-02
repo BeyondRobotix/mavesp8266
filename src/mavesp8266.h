@@ -93,14 +93,15 @@ public:
     virtual ~MavESP8266Bridge(){;}
     virtual void    begin           (MavESP8266Bridge* forwardTo);
     virtual void    readMessage     () = 0;
-    virtual void    sendMessage     (mavlink_message_t* message, int count) = 0;
-    virtual void    sendMessage     (mavlink_message_t* message) = 0;
+    virtual int     sendMessage     (mavlink_message_t* message, int count) = 0;
+    virtual int     sendMessage     (mavlink_message_t* message) = 0;
     virtual bool    heardFrom       () { return _heard_from;    }
     virtual uint8_t systemID        () { return _system_id;     }
     virtual uint8_t componentID     () { return _component_id;  }
     virtual linkStatus* getStatus   () { return &_status;       }
 protected:
     virtual void    _checkLinkErrors(mavlink_message_t* msg);
+    virtual void    _sendRadioStatus() = 0;
 protected:
     bool                    _heard_from;
     uint8_t                 _system_id;
@@ -108,6 +109,7 @@ protected:
     uint8_t                 _seq_expected;
     uint32_t                _last_heartbeat;
     linkStatus              _status;
+    unsigned long           _last_status_time;
     MavESP8266Bridge*       _forwardTo;
 };
 

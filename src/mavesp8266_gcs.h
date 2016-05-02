@@ -46,13 +46,13 @@ public:
 
     void    begin                   (MavESP8266Bridge* forwardTo, IPAddress gcsIP);
     void    readMessage             ();
-    void    sendMessage             (mavlink_message_t* message, int count);
-    void    sendMessage             (mavlink_message_t* message);
+    int     sendMessage             (mavlink_message_t* message, int count);
+    int     sendMessage             (mavlink_message_t* message);
+protected:
+    void    _sendRadioStatus        ();
 
 private:
     bool    _readMessage            ();
-    void    _sendRadioStatus        ();
-
     void    _sendSingleUdpMessage   (mavlink_message_t* msg);
     void    _checkUdpErrors         (mavlink_message_t* msg);
 

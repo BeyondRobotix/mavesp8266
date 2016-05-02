@@ -95,7 +95,7 @@ MavESP8266Component::handleMessage(MavESP8266Bridge* sender, mavlink_message_t* 
       mavlink_msg_param_request_read_decode(message, &param);
       //-- This component or all components?
       if(param.target_component == MAV_COMP_ID_ALL || param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
-          //-- If asking for hash, respond and pass through to the UAS
+          //-- If asking for hash, respond and pass through
           if(strncmp(param.param_id, kHASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN) == 0) {
               _sendParameter(sender, kHASH_PARAM, getWorld()->getParameters()->paramHashCheck(), 0xFFFF);
           } else {

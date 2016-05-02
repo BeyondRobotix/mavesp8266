@@ -301,7 +301,8 @@ void handle_getJSysStatus()
         "\"vpackets\": \"%u\", "
         "\"vsent\": \"%u\", "
         "\"vlost\": \"%u\", "
-        "\"radio\": \"%u\""
+        "\"radio\": \"%u\", "
+        "\"buffer\": \"%u\""
         " }",
         gcsStatus->packets_received,
         gcsStatus->packets_sent,
@@ -309,7 +310,8 @@ void handle_getJSysStatus()
         vehicleStatus->packets_received,
         vehicleStatus->packets_sent,
         vehicleStatus->packets_lost,
-        gcsStatus->radio_status_sent
+        gcsStatus->radio_status_sent,
+        vehicleStatus->queue_status
     );
     webServer.send(200, "application/json", message);
 }

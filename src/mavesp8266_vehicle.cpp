@@ -44,6 +44,7 @@
 MavESP8266Vehicle::MavESP8266Vehicle()
     : _queue_count(0)
     , _queue_time(0)
+    , _buffer_status(50.0)
 {
     memset(_message, 0 , sizeof(_message));
 }
@@ -69,30 +70,57 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
 void
 MavESP8266Vehicle::readMessage()
 {
-    if(_readMessage()) {
-        _queue_count++;
+    if(_queue_count < UAS_QUEUE_SIZE) {
+        if(_readMessage()) {
+            _queue_count++;
+        }
     }
     //-- Do we have a message to send and is it time to forward data?
-    if(_queue_count && (_queue_count == UAS_QUEUE_SIZE || (millis() - _queue_time) > UAS_QUEUE_TIMEOUT)) {
-        _forwardTo->sendMessage(_message, _queue_count);
-        memset(_message, 0, sizeof(_message));
-        _queue_count = 0;
-        _queue_time  = millis();
+    if(_queue_count && (_queue_count >= UAS_QUEUE_THRESHOLD || (millis() - _queue_time) > UAS_QUEUE_TIMEOUT)) {
+        int sent = _forwardTo->sendMessage(_message, _queue_count);
+        //-- Sent it all?
+        if(sent == _queue_count) {
+            memset(_message, 0, sizeof(_message));
+            _queue_count = 0;
+            _queue_time  = millis();
+        //-- Sent at least some?
+        } else if(sent) {
+            //-- Move the pending ones up the queue
+            int left = _queue_count - sent;
+            for(int i = 0; i < left; i++) {
+                memcpy(&_message[sent+i], &_message[i], sizeof(mavlink_message_t));
+            }
+            _queue_count = left;
+        }
+        //-- Maintain buffer status
+        float cur_status  = 0.0;
+        float buffer_size = (float)UAS_QUEUE_THRESHOLD;
+        float buffer_left = (float)(UAS_QUEUE_THRESHOLD - _queue_count);
+        if(buffer_left > 0.0)
+            cur_status = ((buffer_left / buffer_size) * 100.0f);
+        _buffer_status = (_buffer_status * 0.05f) + (cur_status * 0.95);
+    }
+    //-- Update radio status (1Hz)
+    if(_heard_from && (millis() - _last_status_time > 1000)) {
+        delay(0);
+        _sendRadioStatus();
+        _last_status_time = millis();
     }
 }
 
 //---------------------------------------------------------------------------------
 //-- Send MavLink message to UAS
-void
+int
 MavESP8266Vehicle::sendMessage(mavlink_message_t* message, int count) {
     for(int i = 0; i < count; i++) {
         sendMessage(&message[i]);
     }
+    return count;
 }
 
 //---------------------------------------------------------------------------------
 //-- Send MavLink message to UAS
-void
+int
 MavESP8266Vehicle::sendMessage(mavlink_message_t* message) {
     // Translate message to buffer
     char buf[300];
@@ -100,16 +128,15 @@ MavESP8266Vehicle::sendMessage(mavlink_message_t* message) {
     // Send it
     Serial.write((uint8_t*)(void*)buf, len);
     _status.packets_sent++;
+    return 1;
 }
 
 //---------------------------------------------------------------------------------
-//-- We have some special status to compute when asked for
+//-- We have some special status to capture when asked for
 linkStatus*
 MavESP8266Vehicle::getStatus()
 {
-    float buffer_size = (float)UAS_QUEUE_SIZE;
-    float buffer_left = (float)(UAS_QUEUE_SIZE - _queue_count);
-    _status.queue_status = (uint8_t)((buffer_left / buffer_size) * 100.0f);
+    _status.queue_status = (uint8_t)_buffer_status;
     return &_status;
 }
 
@@ -163,4 +190,28 @@ MavESP8266Vehicle::_readMessage()
         }
     }
     return msgReceived;
+}
+
+//---------------------------------------------------------------------------------
+//-- Send Radio Status
+void
+MavESP8266Vehicle::_sendRadioStatus()
+{
+    getStatus();
+    //-- Build message
+    mavlink_message_t msg;
+    mavlink_msg_radio_status_pack(
+        _forwardTo->systemID(),
+        MAV_COMP_ID_UDP_BRIDGE,
+        &msg,
+        0xff,   // We don't have access to RSSI
+        0xff,   // We don't have access to Remote RSSI
+        _status.queue_status, // UDP queue status
+        0,      // We don't have access to noise data
+        0,      // We don't have access to remote noise data
+        (uint16_t)(_status.packets_lost / 10),
+        0       // We don't fix anything
+    );
+    sendMessage(&msg);
+    _status.radio_status_sent++;
 }
