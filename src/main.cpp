@@ -40,14 +40,11 @@
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
+#include "mavesp8266_component.h"
 
 #include <ESP8266mDNS.h>
 
 #define GPIO02  2
-
-#ifndef ENABLE_DEBUG
-uint8_t                 reset_state;
-#endif
 
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
@@ -79,6 +76,7 @@ private:
 
 //-- Singletons
 IPAddress               localIP;
+MavESP8266Component     Component;
 MavESP8266Parameters    Parameters;
 MavESP8266GCS           GCS;
 MavESP8266Vehicle       Vehicle;
@@ -91,6 +89,7 @@ MavESP8266Log           Logger;
 class MavESP8266WorldImp : public MavESP8266World {
 public:
     MavESP8266Parameters*   getParameters   () { return &Parameters;    }
+    MavESP8266Component*    getComponent    () { return &Component;     }
     MavESP8266Vehicle*      getVehicle      () { return &Vehicle;       }
     MavESP8266GCS*          getGCS          () { return &GCS;           }
     MavESP8266Log*          getLogger       () { return &Logger;        }
@@ -124,36 +123,33 @@ void wait_for_client() {
 }
 
 //---------------------------------------------------------------------------------
-//-- Check for reset pin
-void check_reset() {
-#ifndef ENABLE_DEBUG
-    //-- Test for "Reset To Factory"
-    /* Needs testing
-    int reset = digitalRead(GPIO02);
-    if(reset != reset_state) {
-        resetToDefaults();
-        saveAllToEeprom();
-        wifi_reboot();
-    }
-    */
-#endif
+//-- Reset all parameters whenever the reset gpio pin is active
+void reset_interrupt(){
+    Parameters.resetToDefaults();
+    Parameters.saveAllToEeprom();
+    ESP.reset();
 }
 
 //---------------------------------------------------------------------------------
 //-- Set things up
 void setup() {
     delay(1000);
-    Logger.begin(2048);
-#ifndef ENABLE_DEBUG
-    //-- Initialized GPIO02 (Used for "Reset To Factory")
+    Parameters.begin();
+#ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
+    Serial1.begin(115200);
+#else
+    //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
-    reset_state = digitalRead(GPIO02);
+    attachInterrupt(GPIO02, reset_interrupt, FALLING);
 #endif
+    Logger.begin(2048);
+
     DEBUG_LOG("\nConfiguring access point...\n");
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
-    Parameters.begin();
+
+    WiFi.disconnect(true);
 
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
         //-- Connect to an existing network
@@ -219,10 +215,6 @@ void loop() {
         GCS.readMessage();
         delay(0);
         Vehicle.readMessage();
-        //-- TODO
-        //delay(0);
-        //check_reset();
-        //delay(0);
     }
     updateServer.checkUpdates();
 }

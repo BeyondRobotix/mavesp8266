@@ -49,6 +49,7 @@
 }
 
 class MavESP8266Parameters;
+class MavESP8266Component;
 class MavESP8266Vehicle;
 class MavESP8266GCS;
 
@@ -62,7 +63,7 @@ class MavESP8266GCS;
 //-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
 #define MAVESP8266_VERSION_MINOR    0
-#define MAVESP8266_VERSION_BUILD    9
+#define MAVESP8266_VERSION_BUILD    10
 #define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX).
@@ -119,8 +120,9 @@ public:
     MavESP8266Log   ();
     void            begin           (size_t bufferSize); // Allocate a buffer for the log
     size_t          log             (const char *format, ...); // Add to the log
-    String          getLog          (uint32_t position); // Get the log starting at a position
+    String          getLog          (uint32_t* pStart, uint32_t* pLen); // Get the log starting at a position
     uint32_t        getLogSize      (); // Number of bytes available at the current log position
+    uint32_t        getPosition     ();
 private:
     char*           _buffer; // Raw memory
     size_t          _buffer_size; // Size of the above memory
@@ -134,6 +136,7 @@ class MavESP8266World {
 public:
     virtual ~MavESP8266World(){;}
     virtual MavESP8266Parameters*   getParameters   () = 0;
+    virtual MavESP8266Component*    getComponent    () = 0;
     virtual MavESP8266Vehicle*      getVehicle      () = 0;
     virtual MavESP8266GCS*          getGCS          () = 0;
     virtual MavESP8266Log*          getLogger       () = 0;

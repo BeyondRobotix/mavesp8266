@@ -34,6 +34,8 @@ The ```git clone --recursive``` above not only cloned the MavESP8266 repository 
 
 User level (as well as wiring) instructions can be found here: https://pixhawk.org/peripherals/8266
 
+* Resetting to Defaults: In case you change the parameters and get locked out of the module, all the parameters can be reset by bringing the GPIO02 pin low (Connect GPIO02 pin to GND pin). 
+
 ### MavLink Protocol
 
 The MavESP8266 handles its own set of parameters and commands. Look at the [PARAMETERS](PARAMETERS.md) page for more information.

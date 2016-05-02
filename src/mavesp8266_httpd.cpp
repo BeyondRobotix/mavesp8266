@@ -237,13 +237,13 @@ void handle_getStatus()
 //---------------------------------------------------------------------------------
 void handle_getJLog()
 {
-    uint32_t position = 0;
+    uint32_t position = 0, len;
     if(webServer.hasArg(kPOSITION)) {
         position = webServer.arg(kPOSITION).toInt();
     }
-    String logText = getWorld()->getLogger()->getLog(position);
+    String logText = getWorld()->getLogger()->getLog(&position, &len);
     char jStart[128];
-    snprintf(jStart, 128, "{\"len\":%d, \"start\":%d, \"text\": \"", logText.length(), position);
+    snprintf(jStart, 128, "{\"len\":%d, \"start\":%d, \"text\": \"", len, position);
     String payLoad = jStart;
     payLoad += logText;
     payLoad += "\"}";
@@ -273,7 +273,7 @@ void handle_getJSysInfo()
         fid & 0xff, (fid & 0xff00) | ((fid >> 16) & 0xff),
         flash,
         ESP.getFreeHeap(),
-        getWorld()->getLogger()->getLogSize(),
+        getWorld()->getLogger()->getPosition(),
         paramCRC
     );
     webServer.send(200, "application/json", message);

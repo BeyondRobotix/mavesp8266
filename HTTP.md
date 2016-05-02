@@ -21,7 +21,7 @@ This will show the current comm link status.
 
 http://192.168.4.1/setparameters?key=value&key=value
 
-This will allow you to set any parameter to the specified value. Once set, the values are stored in non volatile memory (EEPROM) but will only take effect once you reboot it. Use this with caution as you may lock yourself out. For instance, if you change the AP password and don't remember later, currently there is no way to reset it other than reflashing the firmware. Also note that there is no validation done to the values entered. 
+This will allow you to set any parameter to the specified value. Once set, the values are stored in non volatile memory (EEPROM) but will only take effect once you reboot it. Use this with caution as you may lock yourself out. For instance, if you change the AP password and don't remember later, currently you must either trigger the reset pin (see README) or reflash the module in order to revert the parameters. Also note that there is no validation done to the values entered. 
 
 There are the supported parameters:
 

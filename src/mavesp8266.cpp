@@ -95,9 +95,6 @@ MavESP8266Log::MavESP8266Log()
 void
 MavESP8266Log::begin(size_t bufferSize)
 {
-#ifdef ENABLE_DEBUG
-    Serial1.begin(115200);
-#endif
     _buffer_size = bufferSize & 0xFFFE;
     _buffer = (char*)malloc(_buffer_size);
 }
@@ -126,19 +123,20 @@ MavESP8266Log::log(const char *format, ...) {
 
 //---------------------------------------------------------------------------------
 String
-MavESP8266Log::getLog(uint32_t position) {
+MavESP8266Log::getLog(uint32_t* pStart, uint32_t* pLen) {
     String buffer;
 
-    uint32_t len = getLogSize();
-    if (position <= _log_position - len) { //-- Can't read data that was overriden
-        position = len;
-    } else if (position >= _log_position) { //-- Can't read data from the future
-        position = 0;
-    } else {
-        //-- Convert absolute position to index relative to buffer start
-        position = _log_position - position;
+    uint32_t position = *pStart, len = getLogSize();
+    if (position < _log_position - len) { //-- Can't read data that was overriden
+        position = _log_position - len;
+    } else if (position > _log_position) { //-- Can't read data from the future
+        position = _log_position;
     }
-    int r = (_log_offset - position) % _buffer_size;
+    len = _log_position - position;
+    *pStart = position;
+    *pLen = len;
+
+    uint32_t r = (_log_offset + (_buffer_size - len)) % _buffer_size;
     while(len > 0) {
         char c = _buffer[r];
         //-- Copy as JSON encoded characters
@@ -163,4 +161,11 @@ uint32_t
 MavESP8266Log::getLogSize()
 {
     return min(_log_position, _buffer_size);
+}
+
+//---------------------------------------------------------------------------------
+uint32_t
+MavESP8266Log::getPosition()
+{
+    return _log_position;
 }
