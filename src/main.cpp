@@ -129,15 +129,12 @@ void reset_interrupt(){
     Parameters.saveAllToEeprom();
     ESP.reset();
 }
-    }
-    */
-#endif
-}
 
 //---------------------------------------------------------------------------------
 //-- Set things up
 void setup() {
     delay(1000);
+    Parameters.begin();
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
@@ -151,7 +148,8 @@ void setup() {
 
     DEBUG_LOG("\nConfiguring access point...\n");
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
-    Parameters.begin();
+
+    WiFi.disconnect(true);
 
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
         //-- Connect to an existing network

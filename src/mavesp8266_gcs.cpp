@@ -124,12 +124,6 @@ MavESP8266GCS::_readMessage()
                     }
 
 
-                    //
-                    //   TODO: These response messages need to be queued up and sent as part of the main loop and not all
-                    //   at once from here.
-                    //
-                    //-----------------------------------------------
-
 
                     //-- Check for message we might be interested
                     if(getWorld()->getComponent()->handleMessage(this, &_message)){

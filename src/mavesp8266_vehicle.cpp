@@ -145,9 +145,9 @@ MavESP8266Vehicle::_readMessage()
                 }
 
                 //-- Check for message we might be interested
-                if(getWorld()->getComponent()->handleMessage(this, _message)){
+                if(getWorld()->getComponent()->handleMessage(this, &_message[_queue_count])){
                     //-- Eat message (don't send it to GCS)
-                    memset(&_message, 0, sizeof(_message));
+                    memset(&_message[_queue_count], 0, sizeof(mavlink_message_t));
                     msgReceived = false;
                     continue;
                 }

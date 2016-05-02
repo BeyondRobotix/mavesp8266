@@ -48,10 +48,15 @@ MavESP8266Component::MavESP8266Component() {
 
 }
 
-// TODO: Instead of using sendUdpMessage, use sender->sendMessage
-
 bool
 MavESP8266Component::handleMessage(MavESP8266Bridge* sender, mavlink_message_t* message) {
+
+  //
+  //   TODO: These response messages need to be queued up and sent as part of the main loop and not all
+  //   at once from here.
+  //
+  //-----------------------------------------------
+
 
   //-- MAVLINK_MSG_ID_PARAM_SET
   if(message->msgid == MAVLINK_MSG_ID_PARAM_SET) {
