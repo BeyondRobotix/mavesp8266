@@ -46,10 +46,6 @@
 
 #define GPIO02  2
 
-#ifndef ENABLE_DEBUG
-uint8_t                 reset_state;
-#endif
-
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
 class MavESP8266UpdateImp : public MavESP8266Update {
@@ -127,16 +123,12 @@ void wait_for_client() {
 }
 
 //---------------------------------------------------------------------------------
-//-- Check for reset pin
-void check_reset() {
-#ifndef ENABLE_DEBUG
-    //-- Test for "Reset To Factory"
-    /* Needs testing
-    int reset = digitalRead(GPIO02);
-    if(reset != reset_state) {
-        resetToDefaults();
-        saveAllToEeprom();
-        wifi_reboot();
+//-- Reset all parameters whenever the reset gpio pin is active
+void reset_interrupt(){
+    Parameters.resetToDefaults();
+    Parameters.saveAllToEeprom();
+    ESP.reset();
+}
     }
     */
 #endif
@@ -147,13 +139,13 @@ void check_reset() {
 void setup() {
     delay(1000);
 #ifdef ENABLE_DEBUG
+    //   We only use it for non debug because GPIO02 is used as a serial
+    //   pin (TX) when debugging.
     Serial1.begin(115200);
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
-    //   We only use it for non debug because GPIO02 is used as a serial
-    //   pin (TX) when debugging.
     pinMode(GPIO02, INPUT_PULLUP);
-    reset_state = digitalRead(GPIO02);
+    attachInterrupt(GPIO02, reset_interrupt, FALLING);
 #endif
     Logger.begin(2048);
 
@@ -225,10 +217,6 @@ void loop() {
         GCS.readMessage();
         delay(0);
         Vehicle.readMessage();
-        //-- TODO
-        //delay(0);
-        //check_reset();
-        //delay(0);
     }
     updateServer.checkUpdates();
 }
