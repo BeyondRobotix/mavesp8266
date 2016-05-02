@@ -44,7 +44,6 @@ const char* kHASH_PARAM = "_HASH_CHECK";
 //---------------------------------------------------------------------------------
 MavESP8266GCS::MavESP8266GCS()
     : _udp_port(DEFAULT_UDP_HPORT)
-    , _last_status_time(0)
 {
     memset(&_message, 0, sizeof(_message));
 }
@@ -172,7 +171,7 @@ MavESP8266GCS::_readMessage()
                         mavlink_msg_param_request_read_decode(&_message, &param);
                         //-- This component or all components?
                         if(param.target_component == MAV_COMP_ID_ALL || param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
-                            //-- If asking for hash, respond and pass through to the UAS
+                            //-- If asking for hash, respond and pass through to the FC
                             if(strncmp(param.param_id, kHASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN) == 0) {
                                 _sendParameter(kHASH_PARAM, getWorld()->getParameters()->paramHashCheck(), 0xFFFF);
                             } else {
@@ -209,26 +208,40 @@ MavESP8266GCS::_readMessage()
 
 //---------------------------------------------------------------------------------
 //-- Forward message(s) to the GCS
-void
+int
 MavESP8266GCS::sendMessage(mavlink_message_t* message, int count) {
+    int sentCount = 0;
     _udp.beginPacket(_ip, _udp_port);
     for(int i = 0; i < count; i++) {
         // Translate message to buffer
         char buf[300];
         unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &message[i]);
         // Send it
-        _udp.write((uint8_t*)(void*)buf, len);
         _status.packets_sent++;
+        size_t sent = _udp.write((uint8_t*)(void*)buf, len);
+        if(sent != len) {
+            break;
+            //-- Fibble attempt at not losing data until we get access to the socket TX buffer
+            //   status before we try to send.
+            _udp.endPacket();
+            delay(2);
+            _udp.beginPacket(_ip, _udp_port);
+            _udp.write((uint8_t*)(void*)&buf[sent], len - sent);
+            _udp.endPacket();
+            return sentCount;
+        }
+        sentCount++;
     }
     _udp.endPacket();
-    delay(0);
+    return sentCount;
 }
 
 //---------------------------------------------------------------------------------
 //-- Forward message to the GCS
-void
+int
 MavESP8266GCS::sendMessage(mavlink_message_t* message) {
     _sendSingleUdpMessage(message);
+    return 1;
 }
 
 //---------------------------------------------------------------------------------
@@ -245,7 +258,7 @@ MavESP8266GCS::_sendRadioStatus()
         &msg,
         0xff,   // We don't have access to RSSI
         0xff,   // We don't have access to Remote RSSI
-        st->queue_status, // Outgoing queue status
+        st->queue_status, // UDP queue status
         0,      // We don't have access to noise data
         0,      // We don't have access to remote noise data
         (uint16_t)(_status.packets_lost / 10),
@@ -342,6 +355,7 @@ MavESP8266GCS::_sendParameter(uint16_t index)
         &msg
     );
     _sendSingleUdpMessage(&mmsg);
+    delay(0);
 }
 
 //---------------------------------------------------------------------------------
@@ -364,6 +378,7 @@ MavESP8266GCS::_sendParameter(const char* id, uint32_t value, uint16_t index)
         &msg
     );
     _sendSingleUdpMessage(&mmsg);
+    delay(0);
 }
 
 //---------------------------------------------------------------------------------
@@ -376,10 +391,17 @@ MavESP8266GCS::_sendSingleUdpMessage(mavlink_message_t* msg)
     unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, msg);
     // Send it
     _udp.beginPacket(_ip, _udp_port);
-    _udp.write((uint8_t*)(void*)buf, len);
+    size_t sent = _udp.write((uint8_t*)(void*)buf, len);
     _udp.endPacket();
+    //-- Fibble attempt at not losing data until we get access to the socket TX buffer
+    //   status before we try to send.
+    if(sent != len) {
+        delay(1);
+        _udp.beginPacket(_ip, _udp_port);
+        _udp.write((uint8_t*)(void*)&buf[sent], len - sent);
+        _udp.endPacket();
+    }
     _status.packets_sent++;
-    delay(0);
 }
 
 //---------------------------------------------------------------------------------
