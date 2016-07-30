@@ -204,8 +204,8 @@ MavESP8266Vehicle::_sendRadioStatus()
         _forwardTo->systemID(),
         MAV_COMP_ID_UDP_BRIDGE,
         &msg,
-        0xff,   // We don't have access to RSSI
-        0xff,   // We don't have access to Remote RSSI
+        0,      // We don't have access to RSSI
+        0,      // We don't have access to Remote RSSI
         _status.queue_status, // UDP queue status
         0,      // We don't have access to noise data
         0,      // We don't have access to remote noise data

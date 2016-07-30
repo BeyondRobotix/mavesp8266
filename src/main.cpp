@@ -166,6 +166,7 @@ void setup() {
         }
         if(WiFi.status() == WL_CONNECTED) {
             localIP = WiFi.localIP();
+            WiFi.setAutoReconnect(true);
         } else {
             //-- Fall back to AP mode if no connection could be established
             WiFi.disconnect(true);
