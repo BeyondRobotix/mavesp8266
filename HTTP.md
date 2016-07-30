@@ -38,10 +38,17 @@ There are the supported parameters:
 | reboot | 0  | Reboot the WiFi Bridge | http://192.168.4.1/setparameters?reboot=1 |
 | ssid | PixRacer  | WiFi AP SSID | http://192.168.4.1/setparameters?ssid=PixRacer |
 | ssidsta | PixRacer  | WiFi STA SSID | http://192.168.4.1/setparameters?ssidsta=PixRacer |
+| ipsta | 0.0.0.0 | Wifi STA Static IP | http://192.168.4.1/setparameters?ipsta=192.168.4.2 |
+| gatewaysta | 0.0.0.0 | Wifi STA Gateway | http://192.168.4.1/setparameters?gatewaysta=192.168.4.1 |
+| subnetsta | 0.0.0.0 | Wifi STA Subnet | http://192.168.4.1/setparameters?subnetsta=255.255.255.0 |
 
 You can combine any number of parameters into one request. For example:
 
 http://192.168.4.1/setparameters?baud=921600&channel=9&reboot=1
+
+To connect to a typical existing network with a static ip:
+
+http://192.168.4.1/setparameters?mode=1&ssidsta=networkname&pwdsta=thepassword&ipsta=192.168.1.123&gatewaysta=192.168.1.1&subnetsta=255.255.255.0
 
 ##### Upload New Firmware
 
