@@ -154,7 +154,7 @@ void setup() {
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
         //-- Connect to an existing network
         WiFi.mode(WIFI_STA);
-		WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
+        WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
 
         //-- Wait a minute to connect
@@ -201,7 +201,7 @@ void setup() {
     MDNS.addService("http", "tcp", 80);
     //-- Initialize Comm Links
     DEBUG_LOG("Start WiFi Bridge\n");
-	DEBUG_LOG("Local IP: %s\n", localIP.toString().c_str());
+    DEBUG_LOG("Local IP: %s\n", localIP.toString().c_str());
 
     Parameters.setLocalIPAddress(localIP);
     IPAddress gcs_ip(localIP);

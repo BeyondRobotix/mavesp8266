@@ -85,9 +85,9 @@ public:
         ID_PASSSTA2,
         ID_PASSSTA3,
         ID_PASSSTA4,
-		ID_IPSTA,
-		ID_GATEWAYSTA,
-		ID_SUBNETSTA,
+        ID_IPSTA,
+        ID_GATEWAYSTA,
+        ID_SUBNETSTA,
         ID_UART,
         ID_COUNT
     };
@@ -108,9 +108,9 @@ public:
     char*       getWifiPassword             ();
     char*       getWifiStaSsid              ();
     char*       getWifiStaPassword          ();
-	uint32_t    getWifiStaIP                ();
-	uint32_t    getWifiStaGateway           ();
-	uint32_t    getWifiStaSubnet            ();
+    uint32_t    getWifiStaIP                ();
+    uint32_t    getWifiStaGateway           ();
+    uint32_t    getWifiStaSubnet            ();
     uint32_t    getUartBaudRate             ();
 
     void        setDebugEnabled             (int8_t enabled);
@@ -122,9 +122,9 @@ public:
     void        setWifiPassword             (const char* pwd);
     void        setWifiStaSsid              (const char* ssid);
     void        setWifiStaPassword          (const char* pwd);
-	void        setWifiStaIP                (uint32_t addr);
-	void        setWifiStaGateway           (uint32_t addr);
-	void        setWifiStaSubnet            (uint32_t addr);
+    void        setWifiStaIP                (uint32_t addr);
+    void        setWifiStaGateway           (uint32_t addr);
+    void        setWifiStaSubnet            (uint32_t addr);
     void        setUartBaudRate             (uint32_t baud);
     void        setLocalIPAddress           (uint32_t ipAddress);
 

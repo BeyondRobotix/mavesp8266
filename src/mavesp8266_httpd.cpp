@@ -348,21 +348,21 @@ void handle_setParameters()
         ok = true;
         getWorld()->getParameters()->setWifiStaSsid(webServer.arg(kSSIDSTA).c_str());
     }
-	if(webServer.hasArg(kIPSTA)) {
-		IPAddress ip;
-		ip.fromString(webServer.arg(kIPSTA).c_str());
-		getWorld()->getParameters()->setWifiStaIP(ip);
-	}
-	if(webServer.hasArg(kGATESTA)) {
-		IPAddress ip;
-		ip.fromString(webServer.arg(kGATESTA).c_str());
-		getWorld()->getParameters()->setWifiStaGateway(ip);
-	}
-	if(webServer.hasArg(kSUBSTA)) {
-		IPAddress ip;
-		ip.fromString(webServer.arg(kSUBSTA).c_str());
-		getWorld()->getParameters()->setWifiStaSubnet(ip);
-	}
+    if(webServer.hasArg(kIPSTA)) {
+        IPAddress ip;
+        ip.fromString(webServer.arg(kIPSTA).c_str());
+        getWorld()->getParameters()->setWifiStaIP(ip);
+    }
+    if(webServer.hasArg(kGATESTA)) {
+        IPAddress ip;
+        ip.fromString(webServer.arg(kGATESTA).c_str());
+        getWorld()->getParameters()->setWifiStaGateway(ip);
+    }
+    if(webServer.hasArg(kSUBSTA)) {
+        IPAddress ip;
+        ip.fromString(webServer.arg(kSUBSTA).c_str());
+        getWorld()->getParameters()->setWifiStaSubnet(ip);
+    }
     if(webServer.hasArg(kCPORT)) {
         ok = true;
         getWorld()->getParameters()->setWifiUdpCport(webServer.arg(kCPORT).toInt());
