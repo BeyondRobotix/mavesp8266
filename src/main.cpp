@@ -178,15 +178,6 @@ void setup() {
         WiFi.encryptionType(AUTH_WPA2_PSK);
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
         localIP = WiFi.softAPIP();
-        DEBUG_LOG("Waiting for DHCPD...\n");
-        dhcp_status dstat = wifi_station_dhcpc_status();
-        while (dstat != DHCP_STARTED) {
-            #ifdef ENABLE_DEBUG
-            Serial1.print(".");
-            #endif
-            delay(500);
-            dstat = wifi_station_dhcpc_status();
-        }
         wait_for_client();
     }
 
