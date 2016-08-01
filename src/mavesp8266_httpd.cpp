@@ -56,6 +56,9 @@ const char* kPWD        = "pwd";
 const char* kSSID       = "ssid";
 const char* kPWDSTA     = "pwdsta";
 const char* kSSIDSTA    = "ssidsta";
+const char* kIPSTA      = "ipsta";
+const char* kGATESTA    = "gatewaysta";
+const char* kSUBSTA     = "subnetsta";
 const char* kCPORT      = "cport";
 const char* kHPORT      = "hport";
 const char* kCHANNEL    = "channel";
@@ -344,6 +347,21 @@ void handle_setParameters()
     if(webServer.hasArg(kSSIDSTA)) {
         ok = true;
         getWorld()->getParameters()->setWifiStaSsid(webServer.arg(kSSIDSTA).c_str());
+    }
+    if(webServer.hasArg(kIPSTA)) {
+        IPAddress ip;
+        ip.fromString(webServer.arg(kIPSTA).c_str());
+        getWorld()->getParameters()->setWifiStaIP(ip);
+    }
+    if(webServer.hasArg(kGATESTA)) {
+        IPAddress ip;
+        ip.fromString(webServer.arg(kGATESTA).c_str());
+        getWorld()->getParameters()->setWifiStaGateway(ip);
+    }
+    if(webServer.hasArg(kSUBSTA)) {
+        IPAddress ip;
+        ip.fromString(webServer.arg(kSUBSTA).c_str());
+        getWorld()->getParameters()->setWifiStaSubnet(ip);
     }
     if(webServer.hasArg(kCPORT)) {
         ok = true;

@@ -43,6 +43,9 @@ If this message is sent specifically to the MavESP8266 component ID, it will set
 | WIFI_SSIDSTA2 | MAV_PARAM_TYPE_UINT32 | |
 | WIFI_SSIDSTA3 | MAV_PARAM_TYPE_UINT32 | |
 | WIFI_SSIDSTA4 | MAV_PARAM_TYPE_UINT32 | |
+| WIFI_IPSTA | MAV_PARAM_TYPE_UINT32 | Wifi STA Static IP Address (4) |
+| WIFI_GATEWAYSTA | MAV_PARAM_TYPE_UINT32 | Wifi STA Gateway Address (4) |
+| WIFI_SUBNETSTA | MAV_PARAM_TYPE_UINT32 | Wifi STA Subnet Address (4) |
 | WIFI_UDP_CPORT | MAV_PARAM_TYPE_UINT16 | Local UDP Port (default to 14555)  |
 | WIFI_UDP_HPORT | MAV_PARAM_TYPE_UINT16 | GCS UDP Port (default to 14550) |
 
@@ -51,6 +54,7 @@ If this message is sent specifically to the MavESP8266 component ID, it will set
 * (1) If debug is enabled, debug messages are sent using ```MAVLINK_MSG_ID_STATUSTEXT``` with a proper ```MAV_SEVERITY_DEBUG``` type. Other messages types, ```MAV_SEVERITY_NOTICE``` for example, are sent regardless.
 * (2) MavLink parameter messages only support a 32-Bit parameter (be it a float, an uint32_t, etc.) In other to fit a 16-character SSID and a 16-character Password, 4 paramaters are used for each. The 32-Bit storage is used to contain 4 bytes for the string.
 * (3) The mode defaults to 0. Set to 0 to act as an Access Point. Set to 1 to connect to an existing WiFi network using the STA (Station Mode) SSID and password. When in *Station Mode*, the module will attempt to connect for up to one minute. If after that it cannot connect, it reverts to AP mode.
+* (4) Defaults to 0 for an unset address. If either the STA IP, Gateway, or Subnet are set, then all three need to be set for it to work properly.
 
 #### MAVLINK_MSG_ID_COMMAND_LONG
 
@@ -59,7 +63,7 @@ In addition to parameters, MavESP8266 also supports a few commands, which will b
 ##### MAV_CMD_PREFLIGHT_STORAGE
 
 * If ```param1``` == 0 It will load all parameters from EEPROM overwriting any changes.
-* If ```param1``` == 1 It will save all current parameters to EEPROM. 
+* If ```param1``` == 1 It will save all current parameters to EEPROM.
 * If ```param1``` == 2 It will reset all parameters to the original default values. Note that it will not store them to EEPROM. You must request that separately if that's what you want to do.
 
 ##### MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN
