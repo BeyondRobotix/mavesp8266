@@ -49,6 +49,18 @@ MavESP8266Component::MavESP8266Component() {
 }
 
 bool
+MavESP8266Component::inRawMode() {
+  // switch out of raw mode when not needed anymore
+  if (_in_raw_mode_time > 0 && millis() > _in_raw_mode_time + 5000) {
+    _in_raw_mode = false;
+    _in_raw_mode_time = 0;
+    getWorld()->getLogger()->log("Raw mode disabled\n");
+  }
+
+  return _in_raw_mode;
+}
+
+bool
 MavESP8266Component::handleMessage(MavESP8266Bridge* sender, mavlink_message_t* message) {
 
   //
@@ -78,6 +90,14 @@ MavESP8266Component::handleMessage(MavESP8266Bridge* sender, mavlink_message_t* 
           if(cmd.target_component == MAV_COMP_ID_UDP_BRIDGE) {
               return true;
           }
+      }
+
+      // recognize FC reboot command and switch to raw mode for bootloader protocol to work
+      if(cmd.target_component == MAV_COMP_ID_ALL
+        && cmd.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
+        getWorld()->getLogger()->log("Raw mode enabled (cmd %d %d)\n", cmd.command, cmd.target_component);
+        _in_raw_mode = true;
+        _in_raw_mode_time = 0;
       }
   //-----------------------------------------------
   //-- MAVLINK_MSG_ID_PARAM_REQUEST_LIST
