@@ -47,7 +47,7 @@ public:
     //- Returns true if the component consumed the message
     bool handleMessage        (MavESP8266Bridge* sender, mavlink_message_t* message);
     bool inRawMode            ();
-    void resetRawMode         () {_in_raw_mode_time = millis();}
+    void resetRawMode         () { _in_raw_mode_time = millis(); }
 
 private:
     void    _sendStatusMessage      (MavESP8266Bridge* sender, uint8_t type, const char* text);
@@ -61,8 +61,8 @@ private:
 
     void    _wifiReboot             (MavESP8266Bridge* sender);
 
-    bool    _in_raw_mode;
-    unsigned long       _in_raw_mode_time;
+    bool            _in_raw_mode;
+    unsigned long   _in_raw_mode_time;
 };
 
 #endif
