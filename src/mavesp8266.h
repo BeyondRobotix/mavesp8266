@@ -93,8 +93,10 @@ public:
     virtual ~MavESP8266Bridge(){;}
     virtual void    begin           (MavESP8266Bridge* forwardTo);
     virtual void    readMessage     () = 0;
+    virtual void    readMessageRaw  () = 0;
     virtual int     sendMessage     (mavlink_message_t* message, int count) = 0;
     virtual int     sendMessage     (mavlink_message_t* message) = 0;
+    virtual int     sendMessagRaw   (uint8_t *buffer, int len) = 0;
     virtual bool    heardFrom       () { return _heard_from;    }
     virtual uint8_t systemID        () { return _system_id;     }
     virtual uint8_t componentID     () { return _component_id;  }

@@ -108,6 +108,24 @@ MavESP8266Vehicle::readMessage()
     }
 }
 
+void
+MavESP8266Vehicle::readMessageRaw() {
+    char buf[1024];
+    int buf_index = 0;
+
+    while(Serial.available() && buf_index < 300)
+    {
+        int result = Serial.read();
+        if (result >= 0)
+        {
+            buf[buf_index] = (char)result;
+            buf_index++;
+        }
+    }
+
+    _forwardTo->sendMessagRaw((uint8_t*)buf, buf_index);
+}
+
 //---------------------------------------------------------------------------------
 //-- Send MavLink message to UAS
 int
@@ -129,6 +147,13 @@ MavESP8266Vehicle::sendMessage(mavlink_message_t* message) {
     Serial.write((uint8_t*)(void*)buf, len);
     _status.packets_sent++;
     return 1;
+}
+
+int
+MavESP8266Vehicle::sendMessagRaw(uint8_t *buffer, int len) {
+    Serial.write(buffer, len);
+    //Serial.flush();
+    return len;
 }
 
 //---------------------------------------------------------------------------------
