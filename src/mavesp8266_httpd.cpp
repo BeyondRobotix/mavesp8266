@@ -333,16 +333,24 @@ void handle_setParameters()
         getWorld()->getParameters()->setUartBaudRate(webServer.arg(kBAUD).toInt());
     }
     if(webServer.hasArg(kPWD)) {
-        ok = true;
-        getWorld()->getParameters()->setWifiPassword(webServer.arg(kPWD).c_str());
+		if(strlen(webServer.arg(kPWD).c_str())>=8){
+			ok = true;
+			getWorld()->getParameters()->setWifiPassword(webServer.arg(kPWD).c_str());
+		}else{
+			ok = false;
+		}
     }
     if(webServer.hasArg(kSSID)) {
         ok = true;
         getWorld()->getParameters()->setWifiSsid(webServer.arg(kSSID).c_str());
     }
     if(webServer.hasArg(kPWDSTA)) {
-        ok = true;
-        getWorld()->getParameters()->setWifiStaPassword(webServer.arg(kPWDSTA).c_str());
+        if(strlen(webServer.arg(kPWD).c_str())>=8){
+			ok = true;
+			getWorld()->getParameters()->setWifiStaPassword(webServer.arg(kPWDSTA).c_str());
+		}else{
+			ok = false;
+		}
     }
     if(webServer.hasArg(kSSIDSTA)) {
         ok = true;
