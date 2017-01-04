@@ -133,7 +133,7 @@ void reset_interrupt(){
 //---------------------------------------------------------------------------------
 //-- Set things up
 void setup() {
-  
+   
     delay(1000);
     Parameters.begin();
 
@@ -182,7 +182,8 @@ void setup() {
         //-- Start AP
         WiFi.mode(WIFI_AP);
         WiFi.encryptionType(AUTH_WPA2_PSK);
-         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
+        WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
+        
        // WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
         localIP = WiFi.softAPIP();
         wait_for_client();

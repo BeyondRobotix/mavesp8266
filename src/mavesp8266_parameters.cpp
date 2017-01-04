@@ -158,7 +158,6 @@ uint32_t    MavESP8266Parameters::getUartBaudRate   () { return _uart_baud_rate;
 void
 MavESP8266Parameters::resetToDefaults()
 {
-	ESP.reset ();
     _sw_version        = MAVESP8266_VERSION;
     _debug_enabled     = 0;
     _wifi_mode         = DEFAULT_WIFI_MODE;
