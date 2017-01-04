@@ -52,6 +52,7 @@ const char PROGMEM kBADARG[]     = "BAD ARGS";
 const char PROGMEM kAPPJSON[]    = "application/json";
 const char PROGMEM HELPHTML[]    = "<table border='1' cellpadding='3' cellspacing='0' bordercolor='#999999'><thead><tr><td >地址</td><td >说明</td></tr></thead><tbody><tr><td><a href='http://192.168.4.1/getparameters'>http://192.168.4.1/getparameters</a></td><td>获取参数列表</td></tr><tr><td><a href='http://192.168.4.1/getstatus'>http://192.168.4.1/getstatus</a></td><td>获取ESP8266状态</td></tr><tr><td><a href='http://192.168.4.1/setparameters?key=value&amp;key=value'>http://192.168.4.1/setparameters?key=value&amp;key=value</a></td><td>设置参数</td></tr><tr><td><a href='http://192.168.4.1/setparameters?baud=57600&amp;channel=9&amp;reboot=1'>http://192.168.4.1/setparameters?baud=57600&amp;channel=9&amp;reboot=1</a></td><td>组合使用</td></tr><tr><td><a href='http://192.168.4.1/setparameters?mode=1&amp;ssidsta=networkname&amp;pwdsta=thepassword&amp;ipsta=192.168.1.123&amp;gatewaysta=192.168.1.1&amp;subnetsta=255.255.255.0'>http://192.168.4.1/setparameters?mode=1&amp;ssidsta=networkname&amp;pwdsta=thepassword&amp;ipsta=192.168.1.123&amp;gatewaysta=192.168.1.1&amp;subnetsta=255.255.255.0</a></td> <td>连接wifi例子</td></tr></tbody></table><table border='1' cellpadding='3' cellspacing='0' bordercolor='#999999'><thead><tr><th>参数</th><th>默认值</th><th>说明</th><th>地址</th></tr></thead><tbody><tr><td>baud</td><td>57600</td><td>串口速率</td><td><a href='http://192.168.4.1/setparameters?baud=57600'>http://192.168.4.1/setparameters?baud=57600</a></td></tr><tr><td>channel</td><td>11</td><td>AP模式信道</td><td><a href='http://192.168.4.1/setparameters?channel=11'>http://192.168.4.1/setparameters?channel=11</a></td></tr><tr><td>cport</td><td>14555</td><td>本地监听端口</td><td><a href='http://192.168.4.1/setparameters?cport=14555'>http://192.168.4.1/setparameters?cport=14555</a></td></tr><tr><td>debug</td><td>0</td><td>开启调试信息</td><td><a href='http://192.168.4.1/setparameters?debug=0'>http://192.168.4.1/setparameters?debug=0</a></td></tr><tr><td>hport</td><td>14550</td><td>地面站UDP监听端口，MP默认14550</td><td><a href='http://192.168.4.1/setparameters?hport=14550'>http://192.168.4.1/setparameters?hport=14550</a></td></tr><tr><td>mode</td><td>0</td><td>AP模式=0，STA模式=1</td><td><a href='http://192.168.4.1/setparameters?mode=1'>http://192.168.4.1/setparameters?mode=1</a></td></tr><tr><td>pwd</td><td>pixhawklink</td><td>AP模式的连接密码</td><td><a href='http://192.168.4.1/setparameters?pwd=pixhawklink'>http://192.168.4.1/setparameters?pwd=pixhawklink</a></td></tr><tr><td>pwdsta</td><td>LinkWIFI</td><td>STA模式的连接密码</td><td><a href='http://192.168.4.1/setparameters?pwdsta=pixhawklink'>http://192.168.4.1/setparameters?pwdsta=pixhawklink</a></td></tr><tr><td>reboot</td><td>0</td><td>重启=1</td><td><a href='http://192.168.4.1/setparameters?reboot=1'>http://192.168.4.1/setparameters?reboot=1</a></td></tr><tr><td>ssid</td><td>LinkWIFI</td><td>AP模式的WIFI名称</td><td><a href='http://192.168.4.1/setparameters?ssid=LinkWIFI'>http://192.168.4.1/setparameters?ssid=LinkWIFI</a></td></tr><tr><td>ssidsta</td><td>LinkWIFI</td><td>STA模式连接的WIFI名称</td><td><a href='http://192.168.4.1/setparameters?ssidsta=LinkWIFI'>http://192.168.4.1/setparameters?ssidsta=LinkWIFI</a></td></tr><tr><td>ipsta</td><td>0.0.0.0</td><td>STA模式的WIFI静态IP</td><td><a href='http://192.168.4.1/setparameters?ipsta=192.168.4.2'>http://192.168.4.1/setparameters?ipsta=192.168.4.2</a></td></tr><tr><td>gatewaysta</td><td>0.0.0.0</td><td>STA模式的网关地址</td><td><a href='http://192.168.4.1/setparameters?gatewaysta=192.168.4.1'>http://192.168.4.1/setparameters?gatewaysta=192.168.4.1</a></td></tr><tr><td>subnetsta</td><td>0.0.0.0</td><td>STA模式的子网掩码</td><td><a href='http://192.168.4.1/setparameters?subnetsta=255.255.255.0'>http://192.168.4.1/setparameters?subnetsta=255.255.255.0</a></td></tr></tbody></table>\r\n";
 
+
 const char* kBAUD       = "baud";
 const char* kPWD        = "pwd";
 const char* kSSID       = "ssid";
@@ -178,18 +179,8 @@ void handle_upload_status() {
 //---------------------------------------------------------------------------------
 void handle_getParameters()
 {
-	//Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel()
     String message = FPSTR(kHEADER);
     message += "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
-	message += "<tr><td>SSID</td>";
-	message += "<td>";
-    message += getWorld()->getParameters()->getWifiSsid();
-	message += "</td></tr>";
-	message += "<tr><td>pwd</td>";
-	message += "<td>";
-    message += getWorld()->getParameters()->getWifiPassword();
-	message += "</td></tr>";
-	
     for(int i = 0; i < MavESP8266Parameters::ID_COUNT; i++) {
         message += "<tr><td>";
         message += getWorld()->getParameters()->getAt(i)->id;
@@ -206,7 +197,6 @@ void handle_getParameters()
         message += "</td></tr>";
     }
     message += "</table>";
-	message +=	FPSTR(HELPHTML);
     message += "</body>";
     webServer.send(200, FPSTR(kTEXTHTML), message);
 }
@@ -244,7 +234,6 @@ void handle_getStatus()
     message += "</td></tr><tr><td>Parameters CRC</td><td>";
     message += paramCRC;
     message += "</td></tr></table>";
-	message +=	FPSTR(HELPHTML);
     message += "</body>";
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
@@ -345,7 +334,7 @@ void handle_setParameters()
         ok = true;
         getWorld()->getParameters()->setUartBaudRate(webServer.arg(kBAUD).toInt());
     }
-    if(webServer.hasArg(kPWD)) {
+   if(webServer.hasArg(kPWD)) {
 		if(strlen(webServer.arg(kPWD).c_str())>=8){
 			ok = true;
 			getWorld()->getParameters()->setWifiPassword(webServer.arg(kPWD).c_str());
@@ -364,10 +353,9 @@ void handle_setParameters()
 		}else{
 			ok = false;
 		}
-    }
+	}
     if(webServer.hasArg(kSSIDSTA)) {
         ok = true;
-		
         getWorld()->getParameters()->setWifiStaSsid(webServer.arg(kSSIDSTA).c_str());
     }
     if(webServer.hasArg(kIPSTA)) {
