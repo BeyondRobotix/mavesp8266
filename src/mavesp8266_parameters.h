@@ -43,8 +43,8 @@
 
 //-- Constants
 #define DEFAULT_WIFI_MODE       WIFI_MODE_AP
-#define DEFAULT_UART_SPEED      921600
-#define DEFAULT_WIFI_CHANNEL    11
+#define DEFAULT_UART_SPEED      57600
+#define DEFAULT_WIFI_CHANNEL    9
 #define DEFAULT_UDP_HPORT       14550
 #define DEFAULT_UDP_CPORT       14555
 
