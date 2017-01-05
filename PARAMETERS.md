@@ -48,6 +48,15 @@ If this message is sent specifically to the MavESP8266 component ID, it will set
 | WIFI_SUBNETSTA | MAV_PARAM_TYPE_UINT32 | Wifi STA Subnet Address (4) |
 | WIFI_UDP_CPORT | MAV_PARAM_TYPE_UINT16 | Local UDP Port (default to 14555)  |
 | WIFI_UDP_HPORT | MAV_PARAM_TYPE_UINT16 | GCS UDP Port (default to 14550) |
+| WEB_ACCOUNT1 | MAV_PARAM_TYPE_UINT32 | Web authentication account(default to 14555) |
+| WEB_ACCOUNT2 | MAV_PARAM_TYPE_UINT32 | |
+| WEB_ACCOUNT3 | MAV_PARAM_TYPE_UINT32 | |
+| WEB_ACCOUNT4 | MAV_PARAM_TYPE_UINT32 | |
+| WEB_PASSWORD1 | MAV_PARAM_TYPE_UINT32 | Web authentication pasword(default to 14555) |
+| WEB_PASSWORD2 | MAV_PARAM_TYPE_UINT32 | |
+| WEB_PASSWORD3 | MAV_PARAM_TYPE_UINT32 | |
+| WEB_PASSWORD4 | MAV_PARAM_TYPE_UINT32 | |
+
 
 ##### Notes
 
