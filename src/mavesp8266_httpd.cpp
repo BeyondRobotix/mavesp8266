@@ -42,6 +42,7 @@
 #include "mavesp8266_vehicle.h"
 
 #include <ESP8266WebServer.h>
+#include <Hash.h>
 
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
 const char PROGMEM kTEXTHTML[]   = "text/html";
@@ -50,7 +51,7 @@ const char PROGMEM kUPLOADFORM[] = "<form method='POST' action='/upload' enctype
 const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title><meta charset='UTF-8'></head><body>";
 const char PROGMEM kBADARG[]     = "BAD ARGS";
 const char PROGMEM kAPPJSON[]    = "application/json";
-const char PROGMEM HELPHTML[]    = "<table border='1' cellpadding='3' cellspacing='0' bordercolor='#999999'><thead><tr><td >地址</td><td >说明</td></tr></thead><tbody><tr><td><a href='http://192.168.4.1/getparameters'>http://192.168.4.1/getparameters</a></td><td>获取参数列表</td></tr><tr><td><a href='http://192.168.4.1/getstatus'>http://192.168.4.1/getstatus</a></td><td>获取ESP8266状态</td></tr><tr><td><a href='http://192.168.4.1/setparameters?key=value&amp;key=value'>http://192.168.4.1/setparameters?key=value&amp;key=value</a></td><td>设置参数</td></tr><tr><td><a href='http://192.168.4.1/setparameters?baud=57600&amp;channel=9&amp;reboot=1'>http://192.168.4.1/setparameters?baud=57600&amp;channel=9&amp;reboot=1</a></td><td>组合使用</td></tr><tr><td><a href='http://192.168.4.1/setparameters?mode=1&amp;ssidsta=networkname&amp;pwdsta=thepassword&amp;ipsta=192.168.1.123&amp;gatewaysta=192.168.1.1&amp;subnetsta=255.255.255.0'>http://192.168.4.1/setparameters?mode=1&amp;ssidsta=networkname&amp;pwdsta=thepassword&amp;ipsta=192.168.1.123&amp;gatewaysta=192.168.1.1&amp;subnetsta=255.255.255.0</a></td> <td>连接wifi例子</td></tr></tbody></table><table border='1' cellpadding='3' cellspacing='0' bordercolor='#999999'><thead><tr><th>参数</th><th>默认值</th><th>说明</th><th>地址</th></tr></thead><tbody><tr><td>baud</td><td>57600</td><td>串口速率</td><td><a href='http://192.168.4.1/setparameters?baud=57600'>http://192.168.4.1/setparameters?baud=57600</a></td></tr><tr><td>channel</td><td>11</td><td>AP模式信道</td><td><a href='http://192.168.4.1/setparameters?channel=11'>http://192.168.4.1/setparameters?channel=11</a></td></tr><tr><td>cport</td><td>14555</td><td>本地监听端口</td><td><a href='http://192.168.4.1/setparameters?cport=14555'>http://192.168.4.1/setparameters?cport=14555</a></td></tr><tr><td>debug</td><td>0</td><td>开启调试信息</td><td><a href='http://192.168.4.1/setparameters?debug=0'>http://192.168.4.1/setparameters?debug=0</a></td></tr><tr><td>hport</td><td>14550</td><td>地面站UDP监听端口，MP默认14550</td><td><a href='http://192.168.4.1/setparameters?hport=14550'>http://192.168.4.1/setparameters?hport=14550</a></td></tr><tr><td>mode</td><td>0</td><td>AP模式=0，STA模式=1</td><td><a href='http://192.168.4.1/setparameters?mode=1'>http://192.168.4.1/setparameters?mode=1</a></td></tr><tr><td>pwd</td><td>pixhawklink</td><td>AP模式的连接密码</td><td><a href='http://192.168.4.1/setparameters?pwd=pixhawklink'>http://192.168.4.1/setparameters?pwd=pixhawklink</a></td></tr><tr><td>pwdsta</td><td>LinkWIFI</td><td>STA模式的连接密码</td><td><a href='http://192.168.4.1/setparameters?pwdsta=pixhawklink'>http://192.168.4.1/setparameters?pwdsta=pixhawklink</a></td></tr><tr><td>reboot</td><td>0</td><td>重启=1</td><td><a href='http://192.168.4.1/setparameters?reboot=1'>http://192.168.4.1/setparameters?reboot=1</a></td></tr><tr><td>ssid</td><td>LinkWIFI</td><td>AP模式的WIFI名称</td><td><a href='http://192.168.4.1/setparameters?ssid=LinkWIFI'>http://192.168.4.1/setparameters?ssid=LinkWIFI</a></td></tr><tr><td>ssidsta</td><td>LinkWIFI</td><td>STA模式连接的WIFI名称</td><td><a href='http://192.168.4.1/setparameters?ssidsta=LinkWIFI'>http://192.168.4.1/setparameters?ssidsta=LinkWIFI</a></td></tr><tr><td>ipsta</td><td>0.0.0.0</td><td>STA模式的WIFI静态IP</td><td><a href='http://192.168.4.1/setparameters?ipsta=192.168.4.2'>http://192.168.4.1/setparameters?ipsta=192.168.4.2</a></td></tr><tr><td>gatewaysta</td><td>0.0.0.0</td><td>STA模式的网关地址</td><td><a href='http://192.168.4.1/setparameters?gatewaysta=192.168.4.1'>http://192.168.4.1/setparameters?gatewaysta=192.168.4.1</a></td></tr><tr><td>subnetsta</td><td>0.0.0.0</td><td>STA模式的子网掩码</td><td><a href='http://192.168.4.1/setparameters?subnetsta=255.255.255.0'>http://192.168.4.1/setparameters?subnetsta=255.255.255.0</a></td></tr></tbody></table>\r\n";
+const char PROGMEM HELPHTML[]    = "<table border='1' cellpadding='3' cellspacing='0' bordercolor='#999999'><thead><tr><td >url</td><td>description</td></tr></thead><tbody><tr><td><a href='http://192.168.4.1/getparameters'>http://192.168.4.1/getparameters</a></td><td>list of parameters</td></tr><tr><td><a href='http://192.168.4.1/getstatus'>http://192.168.4.1/getstatus</a></td><td>getstatus of the ESP8266</td></tr><tr><td><a href='http://192.168.4.1/setparameters?key=value&amp;key=value'>http://192.168.4.1/setparameters?key=value&amp;key=value</a></td><td>Setting parameters</td></tr><tr><td><a href='http://192.168.4.1/setparameters?baud=57600&amp;channel=9&amp;reboot=1'>http://192.168.4.1/setparameters?baud=57600&amp;channel=9&amp;reboot=1</a></td><td>Combination</td></tr><tr><td><a href='http://192.168.4.1/setparameters?mode=1&amp;ssidsta=networkname&amp;pwdsta=thepassword&amp;ipsta=192.168.1.123&amp;gatewaysta=192.168.1.1&amp;subnetsta=255.255.255.0'>http://192.168.4.1/setparameters?mode=1&amp;ssidsta=networkname&amp;pwdsta=thepassword&amp;ipsta=192.168.1.123&amp;gatewaysta=192.168.1.1&amp;subnetsta=255.255.255.0</a></td> <td>STA mode example</td></tr><tr><td><a href='http://192.168.4.1/getparameters'>http://192.168.4.1/update</a></td><td>OTA</td></tr></tbody></table><table border='1' cellpadding='3' cellspacing='0' bordercolor='#999999'><thead><tr><th>Parameter</th><th>Defaults</th><th>Description</th><th>url</th></tr></thead><tbody><tr><td>baud</td><td>57600</td><td>Serial port speed</td><td><a href='http://192.168.4.1/setparameters?baud=57600'>http://192.168.4.1/setparameters?baud=57600</a></td></tr><tr><td>channel</td><td>11</td><td>AP mode channel</td><td><a href='http://192.168.4.1/setparameters?channel=11'>http://192.168.4.1/setparameters?channel=11</a></td></tr><tr><td>cport</td><td>14555</td><td>Local listening port</td><td><a href='http://192.168.4.1/setparameters?cport=14555'>http://192.168.4.1/setparameters?cport=14555</a></td></tr><tr><td>debug</td><td>0</td><td>Enable debug</td><td><a href='http://192.168.4.1/setparameters?debug=0'>http://192.168.4.1/setparameters?debug=0</a></td></tr><tr><td>hport</td><td>14550</td><td>default 14550</td><td><a href='http://192.168.4.1/setparameters?hport=14550'>http://192.168.4.1/setparameters?hport=14550</a></td></tr><tr><td>mode</td><td>0</td><td>AP mode = 0, and STA mode = 1</td><td><a href='http://192.168.4.1/setparameters?mode=1'>http://192.168.4.1/setparameters?mode=1</a></td></tr><tr><td>pwd</td><td>pixracer</td><td>AP modepassword</td><td><a href='http://192.168.4.1/setparameters?pwd=pixracer'>http://192.168.4.1/setparameters?pwd=pixracer</a></td></tr><tr><td>pwdsta</td><td>pixracer</td><td>STA mode password</td><td><a href='http://192.168.4.1/setparameters?pwdsta=pixracer'>http://192.168.4.1/setparameters?pwdsta=pixracer</a></td></tr><tr><td>reboot</td><td>0</td><td>Reboot = 1</td><td><a href='http://192.168.4.1/setparameters?reboot=1'>http://192.168.4.1/setparameters?reboot=1</a></td></tr><tr><td>ssid</td><td>PixRacer</td><td>AP mode ssid </td><td><a href='http://192.168.4.1/setparameters?ssid=PixRacer'>http://192.168.4.1/setparameters?ssid=PixRacer</a></td></tr><tr><td>ssidsta</td><td>PixRacer</td> <td>STA mode ssid </td><td><a href='http://192.168.4.1/setparameters?ssidsta=PixRacer'>http://192.168.4.1/setparameters?ssidsta=PixRacer</a></td></tr><tr><td>ipsta</td><td>0.0.0.0</td><td>STA mode WIFI static IP</td><td><a href='http://192.168.4.1/setparameters?ipsta=192.168.4.2'>http://192.168.4.1/setparameters?ipsta=192.168.4.2</a></td></tr><tr><td>gatewaysta</td><td>0.0.0.0</td><td>STA mode gateway address</td><td><a href='http://192.168.4.1/setparameters?gatewaysta=192.168.4.1'>http://192.168.4.1/setparameters?gatewaysta=192.168.4.1</a></td></tr><tr><td>subnetsta</td><td>0.0.0.0</td><td>STA mode subnet mask</td><td><a href='http://192.168.4.1/setparameters?subnetsta=255.255.255.0'>http://192.168.4.1/setparameters?subnetsta=255.255.255.0</a></td></tr> <tr><td>webaccount</td><td>PixRacer</td><td>Web authentication account</td><td><a href='http://192.168.4.1/setparameters?webaccount=PixRacer'>http://192.168.4.1/setparameters?webaccount=PixRacer</a></td></tr><tr><td>webpassword</td><td>pixracer</td><td>Web authentication password </td><td><a href='http://192.168.4.1/setparameters?webpassword=pixracer'>http://192.168.4.1/setparameters?webpassword=pixracer</a></td></tr></tbody></table>";
 
 
 const char* kBAUD       = "baud";
@@ -90,17 +91,24 @@ bool                started     = false;
 
    const char * headerkeys[] = {"User-Agent","Cookie"} ;
   size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
-
+  
+//---------------------------------------------------------------------------------
+String get_SessionKey(){
+	String key=FPSTR(getWorld()->getParameters()->getWebAccount());
+	key+=FPSTR(getWorld()->getParameters()->getWebPassword());
+	return  sha1(key) ;
+}
 //---------------------------------------------------------------------------------
 bool is_authentified() {
   if (webServer.hasHeader("Cookie")) {
     String cookie = webServer.header("Cookie");
-    if (cookie.indexOf("ESPSESSIONID=1") != -1) {
+    if (cookie.indexOf("ESPSESSIONID=" +get_SessionKey()) != -1) {
       return true;
     }
   }
   return false;
 }
+
 //---------------------------------------------------------------------------------
 void setNoCacheHeaders() {
   webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -523,7 +531,9 @@ void handleLogin() {
     //getWorld()->getParameters()->getWebPassword()
     
     if (webServer.arg("USERNAME") == getWorld()->getParameters()->getWebAccount() &&  webServer.arg("PASSWORD") == getWorld()->getParameters()->getWebPassword() ) {
-      String header = "HTTP/1.1 301 OK\r\nSet-Cookie: ESPSESSIONID=1\r\nLocation: /\r\nCache-Control: no-cache\r\n\r\n";
+	  String header = "HTTP/1.1 301 OK\r\nSet-Cookie: ESPSESSIONID=";
+	  header += get_SessionKey();
+	  header +="\r\nLocation: /\r\nCache-Control: no-cache\r\n\r\n";
       webServer.sendContent(header);
       return;
     }
