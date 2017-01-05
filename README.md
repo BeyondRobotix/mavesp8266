@@ -1,9 +1,13 @@
 # Different from the original:
-# 1 Modify the serial port speed
-# Modified to 51200
-# 2 increase web authentication
-# Account Pixracer
-# The password pixracer
+## 1 Modify the serial port speed
+
+Modified to 51200
+
+## 2 increase web authentication
+ Account Pixracer
+ 
+The password pixracer
+
 # MavESP8266
 ## ESP8266 WiFi Access Point and MavLink Bridge
 
