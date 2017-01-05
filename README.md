@@ -6,7 +6,7 @@ Modified to 51200
 ## 2 increase web authentication
  Account:Pixracer 
  
- Password"pixracer
+ Password:pixracer
 
 # MavESP8266
 ## ESP8266 WiFi Access Point and MavLink Bridge
