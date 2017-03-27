@@ -1,4 +1,9 @@
 # MavESP8266
+
+## Current Binary
+
+Download the current version from here: [Firmware version 1.1.1](http://www.grubba.com/mavesp8266/firmware-1.1.1.bin)
+
 ## ESP8266 WiFi Access Point and MavLink Bridge
 
 [![Join the chat at https://gitter.im/dogmaphobic/mavesp8266](https://badges.gitter.im/dogmaphobic/mavesp8266.svg)](https://gitter.im/dogmaphobic/mavesp8266?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
