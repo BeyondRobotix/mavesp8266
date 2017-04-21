@@ -43,7 +43,7 @@
 
 //-- Constants
 #define DEFAULT_WIFI_MODE       WIFI_MODE_AP
-#define DEFAULT_UART_SPEED      921600
+#define DEFAULT_UART_SPEED      57600
 #define DEFAULT_WIFI_CHANNEL    11
 #define DEFAULT_UDP_HPORT       14550
 #define DEFAULT_UDP_CPORT       14555
@@ -89,6 +89,12 @@ public:
         ID_GATEWAYSTA,
         ID_SUBNETSTA,
         ID_UART,
+        ID_WEBACT1,
+        ID_WEBACT2,
+        ID_WEBACT3,
+        ID_WEBPWD1,
+        ID_WEBPWD2,
+        ID_WEBPWD3,
         ID_COUNT
     };
 
@@ -112,6 +118,8 @@ public:
     uint32_t    getWifiStaGateway           ();
     uint32_t    getWifiStaSubnet            ();
     uint32_t    getUartBaudRate             ();
+    char*       getWebAccount               ();
+    char*       getWebPassword               ();
 
     void        setDebugEnabled             (int8_t enabled);
     void        setWifiMode                 (int8_t mode);
@@ -127,6 +135,8 @@ public:
     void        setWifiStaSubnet            (uint32_t addr);
     void        setUartBaudRate             (uint32_t baud);
     void        setLocalIPAddress           (uint32_t ipAddress);
+    void        setWebAccount               (const char* pwd);
+    void        setWebPassword               (const char* pwd);
 
     stMavEspParameters* getAt               (int index);
 

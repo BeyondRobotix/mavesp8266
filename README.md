@@ -1,3 +1,13 @@
+# Different from the original:
+## 1 Modify the serial port speed
+
+Modified to 51200
+
+## 2 increase web authentication
+ Account:Pixracer 
+ 
+ Password:pixracer
+
 # MavESP8266
 
 ## Current Binary
