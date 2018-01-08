@@ -5,7 +5,7 @@ env = DefaultEnvironment()
 env.Replace(
     MYUPLOADERFLAGS=[
         "-vv",
-        "-cd", "nodemcu",
+        "-cd", "$UPLOAD_RESETMETHOD",
         "-cb", "$UPLOAD_SPEED",
         "-cp", "$UPLOAD_PORT",
         "-ca", "0x00000",
