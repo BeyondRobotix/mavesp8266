@@ -65,6 +65,8 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
     Serial.swap();
 #endif
 #endif
+    // raise serial buffer size (default is 256)
+    Serial.setRxBufferSize(1024);
 }
 
 //---------------------------------------------------------------------------------
