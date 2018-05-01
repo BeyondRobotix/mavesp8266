@@ -101,6 +101,8 @@ public:
     virtual uint8_t systemID        () { return _system_id;     }
     virtual uint8_t componentID     () { return _component_id;  }
     virtual linkStatus* getStatus   () { return &_status;       }
+    mavlink_channel_t       _send_chan;
+    mavlink_channel_t       _recv_chan;
 protected:
     virtual void    _checkLinkErrors(mavlink_message_t* msg);
     virtual void    _sendRadioStatus() = 0;
@@ -113,6 +115,9 @@ protected:
     linkStatus              _status;
     unsigned long           _last_status_time;
     MavESP8266Bridge*       _forwardTo;
+    mavlink_status_t        _mav_status;
+    mavlink_message_t       _rxmsg;
+    mavlink_status_t        _rxstatus;
 };
 
 //---------------------------------------------------------------------------------

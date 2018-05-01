@@ -46,6 +46,8 @@ MavESP8266Vehicle::MavESP8266Vehicle()
     , _queue_time(0)
     , _buffer_status(50.0)
 {
+    _recv_chan = MAVLINK_COMM_0;
+    _send_chan = MAVLINK_COMM_1;
     memset(_message, 0 , sizeof(_message));
 }
 
@@ -171,14 +173,17 @@ bool
 MavESP8266Vehicle::_readMessage()
 {
     bool msgReceived = false;
-    mavlink_status_t uas_status;
     while(Serial.available())
     {
         int result = Serial.read();
         if (result >= 0)
         {
             // Parsing
-            msgReceived = mavlink_parse_char(MAVLINK_COMM_1, result, &_message[_queue_count], &uas_status);
+            msgReceived = mavlink_frame_char_buffer(&_rxmsg,
+                                                    &_rxstatus,
+                                                    result,
+                                                    &_message[_queue_count],
+                                                    &_mav_status);
             if(msgReceived) {
                 _status.packets_received++;
                 //-- Is this the first packet we got?
@@ -194,6 +199,14 @@ MavESP8266Vehicle::_readMessage()
                     if(_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT)
                         _last_heartbeat = millis();
                     _checkLinkErrors(&_message[_queue_count]);
+                }
+
+                if (msgReceived == MAVLINK_FRAMING_BAD_CRC ||
+                    msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                    // we don't process messages locally with bad CRC,
+                    // but we do forward them, so when new messages
+                    // are added we can bridge them
+                    break;
                 }
 
                 //-- Check for message we might be interested
@@ -224,10 +237,11 @@ MavESP8266Vehicle::_sendRadioStatus()
 {
     getStatus();
     //-- Build message
-    mavlink_message_t msg;
-    mavlink_msg_radio_status_pack(
+    mavlink_message_t msg {};
+    mavlink_msg_radio_status_pack_chan(
         _forwardTo->systemID(),
         MAV_COMP_ID_UDP_BRIDGE,
+        _send_chan,
         &msg,
         0,      // We don't have access to RSSI
         0,      // We don't have access to Remote RSSI
