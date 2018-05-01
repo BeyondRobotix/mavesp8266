@@ -200,6 +200,19 @@ void handle_getParameters()
 }
 
 //---------------------------------------------------------------------------------
+static void handle_root()
+{
+    String message = FPSTR(kHEADER);
+    message += "<ul>\n";
+    message += "<li><a href='/getstatus'>getstatus</a>\n";
+    message += "<li><a href='/getparameters'>getparameters</a>\n";
+    message += "<li><a href='/update'>update</a>\n";
+    message += "</ul></body>";
+    setNoCacheHeaders();
+    webServer.send(200, FPSTR(kTEXTHTML), message);
+}
+
+//---------------------------------------------------------------------------------
 void handle_getStatus()
 {
     if(!flash)
@@ -428,6 +441,7 @@ void
 MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
 {
     updateCB = updateCB_;
+    webServer.on("/",               handle_root);
     webServer.on("/getparameters",  handle_getParameters);
     webServer.on("/setparameters",  handle_setParameters);
     webServer.on("/getstatus",      handle_getStatus);
