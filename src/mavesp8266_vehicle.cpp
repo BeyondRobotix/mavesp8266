@@ -125,7 +125,7 @@ MavESP8266Vehicle::readMessageRaw() {
         }
     }
 
-    _forwardTo->sendMessagRaw((uint8_t*)buf, buf_index);
+    _forwardTo->sendMessageRaw((uint8_t*)buf, buf_index);
 }
 
 //---------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ MavESP8266Vehicle::sendMessage(mavlink_message_t* message) {
 }
 
 int
-MavESP8266Vehicle::sendMessagRaw(uint8_t *buffer, int len) {
+MavESP8266Vehicle::sendMessageRaw(uint8_t *buffer, int len) {
     Serial.write(buffer, len);
     //Serial.flush();
     return len;

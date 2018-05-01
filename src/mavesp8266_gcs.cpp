@@ -188,7 +188,7 @@ MavESP8266GCS::readMessageRaw() {
             getWorld()->getComponent()->resetRawMode();
         }
 
-        _forwardTo->sendMessagRaw((uint8_t*)buf, buf_index);
+        _forwardTo->sendMessageRaw((uint8_t*)buf, buf_index);
     }
 }
 
@@ -231,7 +231,7 @@ MavESP8266GCS::sendMessage(mavlink_message_t* message) {
 }
 
 int
-MavESP8266GCS::sendMessagRaw(uint8_t *buffer, int len) {
+MavESP8266GCS::sendMessageRaw(uint8_t *buffer, int len) {
     _udp.beginPacket(_ip, _udp_port);
     size_t sent = _udp.write(buffer, len);
     _udp.endPacket();
