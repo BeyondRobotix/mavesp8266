@@ -203,6 +203,12 @@ void handle_getParameters()
 static void handle_root()
 {
     String message = FPSTR(kHEADER);
+    message += "<h1>MAVLink WiFi Bridge</h1>\n";
+    message += "Version: ";
+    char vstr[30];
+    snprintf(vstr, sizeof(vstr), "%u.%u.%u", MAVESP8266_VERSION_MAJOR, MAVESP8266_VERSION_MINOR, MAVESP8266_VERSION_BUILD);
+    message += vstr;
+    message += "<p>\n";
     message += "<ul>\n";
     message += "<li><a href='/getstatus'>getstatus</a>\n";
     message += "<li><a href='/getparameters'>getparameters</a>\n";
@@ -238,13 +244,20 @@ void handle_getStatus()
     message += "</td></tr><tr><td>Radio Messages</td><td>";
     message += gcsStatus->radio_status_sent;
     message += "</td></tr></table>";
-    message += "<p>System Status</p><table><tr><td width=\"240\">Flash Memory Left</td><td>";
+    message += "<p>System Status</p><table>\n";
+    message += "<tr><td width=\"240\">Flash Size</td><td>";
+    message += ESP.getFlashChipRealSize();
+    message += "</td></tr>\n";
+    message += "<tr><td width=\"240\">Flash Available</td><td>";
     message += flash;
-    message += "</td></tr><tr><td>RAM Left</td><td>";
+    message += "</td></tr>\n";
+    message += "<tr><td>RAM Left</td><td>";
     message += String(ESP.getFreeHeap());
-    message += "</td></tr><tr><td>Parameters CRC</td><td>";
+    message += "</td></tr>\n";
+    message += "<tr><td>Parameters CRC</td><td>";
     message += paramCRC;
-    message += "</td></tr></table>";
+    message += "</td></tr>\n";
+    message += "</table>";
     message += "</body>";
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
