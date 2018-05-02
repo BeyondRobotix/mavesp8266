@@ -210,16 +210,61 @@ static void handle_root()
     message += vstr;
     message += "<p>\n";
     message += "<ul>\n";
-    message += "<li><a href='/getstatus'>getstatus</a>\n";
-    message += "<li><a href='/getparameters'>getparameters</a>\n";
-    message += "<li><a href='/update'>update</a>\n";
+    message += "<li><a href='/getstatus'>Get Status</a>\n";
+    message += "<li><a href='/setup'>Setup</a>\n";
+    message += "<li><a href='/getparameters'>Get Parameters</a>\n";
+    message += "<li><a href='/update'>Update Firmware</a>\n";
     message += "</ul></body>";
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
 }
 
 //---------------------------------------------------------------------------------
-void handle_getStatus()
+static void handle_setup()
+{
+    String message = FPSTR(kHEADER);
+    message += "<h1>Setup</h1>\n";
+    message += "<form action='/setparameters' method='post'>\n";
+
+    message += "SSID:&nbsp;";
+    message += "<input type='text' name='ssid' value='";
+    message += getWorld()->getParameters()->getWifiSsid();
+    message += "'><br>";
+
+    message += "Password (min len 8):&nbsp;";
+    message += "<input type='text' name='pwd' value='";
+    message += getWorld()->getParameters()->getWifiPassword();
+    message += "'><br>";
+
+    message += "WiFi Channel:&nbsp;";
+    message += "<input type='text' name='channel' value='";
+    message += getWorld()->getParameters()->getWifiChannel();
+    message += "'><br>";
+
+    message += "Station SSID:&nbsp;";
+    message += "<input type='text' name='ssidsta' value='";
+    message += getWorld()->getParameters()->getWifiStaSsid();
+    message += "'><br>";
+
+    message += "Station Password:&nbsp;";
+    message += "<input type='text' name='pwdsta' value='";
+    message += getWorld()->getParameters()->getWifiStaPassword();
+    message += "'><br>";
+    
+    message += "Baudrate:&nbsp;";
+    message += "<input type='text' name='baud' value='";
+    message += getWorld()->getParameters()->getUartBaudRate();
+    message += "'><br>";
+    
+    message += "<input type='submit' value='Submit'>";
+    message += "</form>";
+    setNoCacheHeaders();
+    webServer.send(200, FPSTR(kTEXTHTML), message);
+}
+
+
+//---------------------------------------------------------------------------------
+static void handle_getStatus()
 {
     if(!flash)
         flash = ESP.getFreeSketchSpace();
@@ -458,6 +503,7 @@ MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
     webServer.on("/getparameters",  handle_getParameters);
     webServer.on("/setparameters",  handle_setParameters);
     webServer.on("/getstatus",      handle_getStatus);
+    webServer.on("/setup",          handle_setup);
     webServer.on("/info.json",      handle_getJSysInfo);
     webServer.on("/status.json",    handle_getJSysStatus);
     webServer.on("/log.json",       handle_getJLog);
