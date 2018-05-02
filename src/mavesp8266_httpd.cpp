@@ -46,8 +46,8 @@
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
 const char PROGMEM kTEXTHTML[]   = "text/html";
 const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
-const char PROGMEM kUPLOADFORM[] = "<form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>";
-const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body>";
+const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVLink WiFi Bridge</a></h1><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='update'><br><input type='submit' value='Update'></form>";
+const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVLink WiFi Bridge</a></h1>";
 const char PROGMEM kBADARG[]     = "BAD ARGS";
 const char PROGMEM kAPPJSON[]    = "application/json";
 
@@ -203,7 +203,6 @@ void handle_getParameters()
 static void handle_root()
 {
     String message = FPSTR(kHEADER);
-    message += "<h1>MAVLink WiFi Bridge</h1>\n";
     message += "Version: ";
     char vstr[30];
     snprintf(vstr, sizeof(vstr), "%u.%u.%u", MAVESP8266_VERSION_MAJOR, MAVESP8266_VERSION_MINOR, MAVESP8266_VERSION_BUILD);
@@ -214,6 +213,7 @@ static void handle_root()
     message += "<li><a href='/setup'>Setup</a>\n";
     message += "<li><a href='/getparameters'>Get Parameters</a>\n";
     message += "<li><a href='/update'>Update Firmware</a>\n";
+    message += "<li><a href='/reboot'>Reboot</a>\n";
     message += "</ul></body>";
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
@@ -226,12 +226,24 @@ static void handle_setup()
     message += "<h1>Setup</h1>\n";
     message += "<form action='/setparameters' method='post'>\n";
 
-    message += "SSID:&nbsp;";
+    message += "WiFi Mode:&nbsp;";
+    message += "<input type='radio' name='mode' value='0'";
+    if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
+        message += " checked";
+    }
+    message += ">AccessPoint\n";
+    message += "<input type='radio' name='mode' value='1'";
+    if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_STA) {
+        message += " checked";
+    }
+    message += ">Station<br>\n";
+    
+    message += "AP SSID:&nbsp;";
     message += "<input type='text' name='ssid' value='";
     message += getWorld()->getParameters()->getWifiSsid();
     message += "'><br>";
 
-    message += "Password (min len 8):&nbsp;";
+    message += "AP Password (min len 8):&nbsp;";
     message += "<input type='text' name='pwd' value='";
     message += getWorld()->getParameters()->getWifiPassword();
     message += "'><br>";
@@ -250,13 +262,42 @@ static void handle_setup()
     message += "<input type='text' name='pwdsta' value='";
     message += getWorld()->getParameters()->getWifiStaPassword();
     message += "'><br>";
+
+    IPAddress IP;    
+    message += "Station IP:&nbsp;";
+    message += "<input type='text' name='ipsta' value='";
+    IP = getWorld()->getParameters()->getWifiStaIP();
+    message += IP.toString();
+    message += "'><br>";
+
+    message += "Station Gateway:&nbsp;";
+    message += "<input type='text' name='gatewaysta' value='";
+    IP = getWorld()->getParameters()->getWifiStaGateway();
+    message += IP.toString();
+    message += "'><br>";
+
+    message += "Station Subnet:&nbsp;";
+    message += "<input type='text' name='subnetsta' value='";
+    IP = getWorld()->getParameters()->getWifiStaSubnet();
+    message += IP.toString();
+    message += "'><br>";
+
+    message += "Host Port:&nbsp;";
+    message += "<input type='text' name='hport' value='";
+    message += getWorld()->getParameters()->getWifiUdpHport();
+    message += "'><br>";
+
+    message += "Client Port:&nbsp;";
+    message += "<input type='text' name='cport' value='";
+    message += getWorld()->getParameters()->getWifiUdpCport();
+    message += "'><br>";
     
     message += "Baudrate:&nbsp;";
     message += "<input type='text' name='baud' value='";
     message += getWorld()->getParameters()->getUartBaudRate();
     message += "'><br>";
     
-    message += "<input type='submit' value='Submit'>";
+    message += "<input type='submit' value='Save'>";
     message += "</form>";
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
@@ -471,6 +512,17 @@ void handle_setParameters()
 }
 
 //---------------------------------------------------------------------------------
+static void handle_reboot()
+{
+    String message = FPSTR(kHEADER);
+    message += "rebooting ...</body>\n";
+    setNoCacheHeaders();
+    webServer.send(200, FPSTR(kTEXTHTML), message);
+    delay(500);
+    ESP.restart();    
+}
+
+//---------------------------------------------------------------------------------
 //-- 404
 void handle_notFound(){
     String message = "File Not Found\n\n";
@@ -503,6 +555,7 @@ MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
     webServer.on("/getparameters",  handle_getParameters);
     webServer.on("/setparameters",  handle_setParameters);
     webServer.on("/getstatus",      handle_getStatus);
+    webServer.on("/reboot",         handle_reboot);
     webServer.on("/setup",          handle_setup);
     webServer.on("/info.json",      handle_getJSysInfo);
     webServer.on("/status.json",    handle_getJSysStatus);
