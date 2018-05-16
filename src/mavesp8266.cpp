@@ -111,7 +111,7 @@ MavESP8266Log::log(const char *format, ...) {
 #endif
 
     if(_buffer) {
-        for(int i = 0; i < len; i++) {
+        for(int i = 0; i < (int)len; i++) {
             _buffer[_log_offset] = temp[i];
             _log_offset = (_log_offset + 1) % _buffer_size;
             _log_position++;

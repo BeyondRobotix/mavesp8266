@@ -268,7 +268,7 @@ MavESP8266Parameters::saveAllToEeprom()
 uint32_t
 MavESP8266Parameters::_crc32part(uint8_t* src, uint32_t len, uint32_t crc)
 {
-    for (int i = 0;  i < len;  i++) {
+    for (int i = 0;  i < (int)len;  i++) {
         crc = crc_table[(crc ^ src[i]) & 0xff] ^ (crc >> 8);
     }
     return crc;
@@ -286,7 +286,7 @@ MavESP8266Parameters::_getEepromCrc()
         size += mavParameters[i].length;
     }
     //-- Computer CRC
-    for (int i = 0 ; i < size; i++) {
+    for (int i = 0 ; i < (int)size; i++) {
         crc = crc_table[(crc ^ EEPROM.read(i)) & 0xff] ^ (crc >> 8);
     }
     return crc;
