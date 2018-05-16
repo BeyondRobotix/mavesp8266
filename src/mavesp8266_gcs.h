@@ -49,7 +49,7 @@ public:
     void    readMessageRaw          ();
     int     sendMessage             (mavlink_message_t* message, int count);
     int     sendMessage             (mavlink_message_t* message);
-    int     sendMessagRaw           (uint8_t *buffer, int len);
+    int     sendMessageRaw           (uint8_t *buffer, int len);
 protected:
     void    _sendRadioStatus        ();
 

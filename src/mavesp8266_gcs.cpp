@@ -44,6 +44,8 @@
 MavESP8266GCS::MavESP8266GCS()
     : _udp_port(DEFAULT_UDP_HPORT)
 {
+    _recv_chan = MAVLINK_COMM_1;
+    _send_chan = MAVLINK_COMM_0;
     memset(&_message, 0, sizeof(_message));
 }
 
@@ -79,6 +81,7 @@ MavESP8266GCS::readMessage()
     }
 }
 
+
 //---------------------------------------------------------------------------------
 //-- Read MavLink message from GCS
 bool
@@ -88,14 +91,17 @@ MavESP8266GCS::_readMessage()
     int udp_count = _udp.parsePacket();
     if(udp_count > 0)
     {
-        mavlink_status_t gcs_status;
         while(udp_count--)
         {
             int result = _udp.read();
             if (result >= 0)
             {
                 // Parsing
-                msgReceived = mavlink_parse_char(MAVLINK_COMM_2, result, &_message, &gcs_status);
+                msgReceived = mavlink_frame_char_buffer(&_rxmsg,
+                                                        &_rxstatus,
+                                                        result,
+                                                        &_message,
+                                                        &_mav_status);
                 if(msgReceived) {
                     //-- We no longer need to broadcast
                     _status.packets_received++;
@@ -122,7 +128,13 @@ MavESP8266GCS::_readMessage()
                         _checkLinkErrors(&_message);
                     }
 
-
+                    if (msgReceived == MAVLINK_FRAMING_BAD_CRC ||
+                        msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                        // we don't process messages locally with bad CRC,
+                        // but we do forward them, so when new messages
+                        // are added we can bridge them
+                        break;
+                    }
 
                     //-- Check for message we might be interested
                     if(getWorld()->getComponent()->handleMessage(this, &_message)){
@@ -176,7 +188,7 @@ MavESP8266GCS::readMessageRaw() {
             getWorld()->getComponent()->resetRawMode();
         }
 
-        _forwardTo->sendMessagRaw((uint8_t*)buf, buf_index);
+        _forwardTo->sendMessageRaw((uint8_t*)buf, buf_index);
     }
 }
 
@@ -219,7 +231,7 @@ MavESP8266GCS::sendMessage(mavlink_message_t* message) {
 }
 
 int
-MavESP8266GCS::sendMessagRaw(uint8_t *buffer, int len) {
+MavESP8266GCS::sendMessageRaw(uint8_t *buffer, int len) {
     _udp.beginPacket(_ip, _udp_port);
     size_t sent = _udp.write(buffer, len);
     _udp.endPacket();
@@ -251,9 +263,10 @@ MavESP8266GCS::_sendRadioStatus()
 
     //-- Build message
     mavlink_message_t msg;
-    mavlink_msg_radio_status_pack(
+    mavlink_msg_radio_status_pack_chan(
         _forwardTo->systemID(),
         MAV_COMP_ID_UDP_BRIDGE,
+        _forwardTo->_recv_chan,
         &msg,
         rssi,                   // RSSI Only valid in STA mode
         0,                      // We don't have access to Remote RSSI

@@ -198,8 +198,8 @@ void setup() {
     IPAddress gcs_ip(localIP);
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip[3] = 255;
-    GCS.begin((MavESP8266Bridge*)&Vehicle, gcs_ip);
-    Vehicle.begin((MavESP8266Bridge*)&GCS);
+    GCS.begin(&Vehicle, gcs_ip);
+    Vehicle.begin(&GCS);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
 }

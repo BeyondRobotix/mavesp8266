@@ -62,7 +62,7 @@ class MavESP8266GCS;
 
 //-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
-#define MAVESP8266_VERSION_MINOR    1
+#define MAVESP8266_VERSION_MINOR    2
 #define MAVESP8266_VERSION_BUILD    1
 #define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
@@ -96,11 +96,13 @@ public:
     virtual void    readMessageRaw  () = 0;
     virtual int     sendMessage     (mavlink_message_t* message, int count) = 0;
     virtual int     sendMessage     (mavlink_message_t* message) = 0;
-    virtual int     sendMessagRaw   (uint8_t *buffer, int len) = 0;
+    virtual int     sendMessageRaw   (uint8_t *buffer, int len) = 0;
     virtual bool    heardFrom       () { return _heard_from;    }
     virtual uint8_t systemID        () { return _system_id;     }
     virtual uint8_t componentID     () { return _component_id;  }
     virtual linkStatus* getStatus   () { return &_status;       }
+    mavlink_channel_t       _send_chan;
+    mavlink_channel_t       _recv_chan;
 protected:
     virtual void    _checkLinkErrors(mavlink_message_t* msg);
     virtual void    _sendRadioStatus() = 0;
@@ -113,6 +115,9 @@ protected:
     linkStatus              _status;
     unsigned long           _last_status_time;
     MavESP8266Bridge*       _forwardTo;
+    mavlink_status_t        _mav_status;
+    mavlink_message_t       _rxmsg;
+    mavlink_status_t        _rxstatus;
 };
 
 //---------------------------------------------------------------------------------

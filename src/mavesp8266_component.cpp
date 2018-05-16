@@ -69,7 +69,6 @@ MavESP8266Component::handleMessage(MavESP8266Bridge* sender, mavlink_message_t* 
   //
   //-----------------------------------------------
 
-
   //-- MAVLINK_MSG_ID_PARAM_SET
   if(message->msgid == MAVLINK_MSG_ID_PARAM_SET) {
       mavlink_param_set_t param;
@@ -139,9 +138,10 @@ MavESP8266Component::_sendStatusMessage(MavESP8266Bridge* sender, uint8_t type, 
     }
     //-- Build message
     mavlink_message_t msg;
-    mavlink_msg_statustext_pack(
+    mavlink_msg_statustext_pack_chan(
         getWorld()->getVehicle()->systemID(),
         MAV_COMP_ID_UDP_BRIDGE,
+        sender->_send_chan,
         &msg,
         type,
         text
@@ -212,9 +212,10 @@ MavESP8266Component::_sendParameter(MavESP8266Bridge* sender, uint16_t index)
     memcpy(&msg.param_value, &val, sizeof(uint32_t));
     msg.param_type = getWorld()->getParameters()->getAt(index)->type;
     mavlink_message_t mmsg;
-    mavlink_msg_param_value_encode(
+    mavlink_msg_param_value_encode_chan(
         getWorld()->getVehicle()->systemID(),
         MAV_COMP_ID_UDP_BRIDGE,
+        sender->_send_chan,
         &mmsg,
         &msg
     );
@@ -235,9 +236,10 @@ MavESP8266Component::_sendParameter(MavESP8266Bridge* sender, const char* id, ui
     memcpy(&msg.param_value, &value, sizeof(uint32_t));
     msg.param_type = MAV_PARAM_TYPE_UINT32;
     mavlink_message_t mmsg;
-    mavlink_msg_param_value_encode(
+    mavlink_msg_param_value_encode_chan(
         getWorld()->getVehicle()->systemID(),
         MAV_COMP_ID_UDP_BRIDGE,
+        sender->_send_chan,
         &mmsg,
         &msg
     );
@@ -290,10 +292,11 @@ MavESP8266Component::_handleCmdLong(MavESP8266Bridge* sender, mavlink_command_lo
     //-- Response
     if(compID == MAV_COMP_ID_UDP_BRIDGE) {
         mavlink_message_t msg;
-        mavlink_msg_command_ack_pack(
+        mavlink_msg_command_ack_pack_chan(
             getWorld()->getVehicle()->systemID(),
             //_forwardTo->systemID(),
             MAV_COMP_ID_UDP_BRIDGE,
+            sender->_send_chan,
             &msg,
             cmd->command,
             result
