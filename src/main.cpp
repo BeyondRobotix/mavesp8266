@@ -43,6 +43,7 @@
 #include "mavesp8266_component.h"
 
 #include <ESP8266mDNS.h>
+#include <Adafruit_NeoPixel.h>
 
 #define GPIO02  2
 
@@ -83,6 +84,7 @@ MavESP8266Vehicle       Vehicle;
 MavESP8266Httpd         updateServer;
 MavESP8266UpdateImp     updateStatus;
 MavESP8266Log           Logger;
+Adafruit_NeoPixel       Pixel = Adafruit_NeoPixel(1, 12, NEO_GRB + NEO_KHZ800);
 
 //---------------------------------------------------------------------------------
 //-- Accessors
@@ -100,6 +102,13 @@ MavESP8266WorldImp      World;
 MavESP8266World* getWorld()
 {
     return &World;
+}
+
+//---------------------------------------------------------------------------------
+//-- Set the color of the indicator RGB LED
+void set_pixel(int r, int g, int b) {
+    Pixel.setPixelColor(0, Pixel.Color(r/4,g/4,b/4));
+    Pixel.show();
 }
 
 //---------------------------------------------------------------------------------
@@ -139,23 +148,28 @@ void setup() {
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
     Serial1.begin(115200);
+    uart_set_debug(UART1);
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
     attachInterrupt(GPIO02, reset_interrupt, FALLING);
 #endif
     Logger.begin(2048);
+    Pixel.begin();
+    set_pixel(255, 0, 0); // red
 
-    DEBUG_LOG("\nConfiguring access point...\n");
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
 
     WiFi.disconnect(true);
+    DEBUG_LOG("Configuring Wifi mode=%d...\n", Parameters.getWifiMode());
 
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
         //-- Connect to an existing network
+        set_pixel(255, 196, 18); // orange
         WiFi.mode(WIFI_STA);
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
+        DEBUG_LOG("STA connecting to %s (%s)...\n", Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
 
         //-- Wait a minute to connect
         for(int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++) {
@@ -166,9 +180,11 @@ void setup() {
         }
         if(WiFi.status() == WL_CONNECTED) {
             localIP = WiFi.localIP();
+            DEBUG_LOG("Local IP: %s\n", localIP.toString().c_str());
             WiFi.setAutoReconnect(true);
         } else {
             //-- Fall back to AP mode if no connection could be established
+            DEBUG_LOG("Falling back to AP\n");
             WiFi.disconnect(true);
             Parameters.setWifiMode(WIFI_MODE_AP);
         }
@@ -176,6 +192,8 @@ void setup() {
 
     if(Parameters.getWifiMode() == WIFI_MODE_AP){
         //-- Start AP
+        set_pixel(212, 66, 244); // pink
+        DEBUG_LOG("AP using SSID %s...\n", Parameters.getWifiSsid());
         WiFi.mode(WIFI_AP);
         WiFi.encryptionType(AUTH_WPA2_PSK);
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
@@ -202,6 +220,7 @@ void setup() {
     Vehicle.begin(&GCS);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
+    DEBUG_LOG("Ready\n"); delay(100);
 }
 
 //---------------------------------------------------------------------------------
@@ -220,4 +239,6 @@ void loop() {
         }
     }
     updateServer.checkUpdates();
+
+    if (GCS.heardFrom()) set_pixel(0,255,0); else set_pixel(98, 244, 252);
 }

@@ -107,7 +107,10 @@ MavESP8266Log::log(const char *format, ...) {
     char temp[1024];
     size_t len = ets_vsnprintf(temp, 1024, format, arg);
 #ifdef ENABLE_DEBUG
-    Serial1.print(temp);
+    for(int i = 0; i < len; i++) {
+        if (temp[i] == '\n') Serial1.print('\r');
+        Serial1.print(temp[i]);
+    }
 #endif
 
     if(_buffer) {

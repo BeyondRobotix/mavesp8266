@@ -180,7 +180,7 @@ void handle_getParameters()
     String message = FPSTR(kHEADER);
     message += "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
     for(int i = 0; i < MavESP8266Parameters::ID_COUNT; i++) {
-        message += "<tr><td>";
+        message += "\n<tr><td>";
         message += getWorld()->getParameters()->getAt(i)->id;
         message += "</td>";
         unsigned long val = 0;

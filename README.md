@@ -50,3 +50,13 @@ The MavESP8266 handles its own set of parameters and commands. Look at the [PARA
 ### HTTP Protocol
 
 There are some preliminary URLs that can be used for checking the WiFi Bridge status as well as updating firmware and changing parameters. [You can find it here.](HTTP.md)
+
+### Neopixel status LED
+
+A Neopixel (WS2812) can be connected to GPIO12 when using an esp12. The LED shows the current
+system status as follows:
+- red: resetting
+- orange: attempting to connect as STA
+- pink: waiting for Wifi client as AP
+- blue: broadcasting mavlink (no GCS heard from)
+- green: unicasting mavlink (GCS heard from)
