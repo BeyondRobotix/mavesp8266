@@ -34,9 +34,3 @@ install:
 
 script:
     - platformio run -e esp01_1m
-
-git:
-  submodules: false
-
-before_install:
-  - git submodule update --init
