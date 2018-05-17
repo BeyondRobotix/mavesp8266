@@ -385,7 +385,7 @@ void handle_getJSysInfo()
         "\"paramcrc\": \"%s\""
         " }",
         kFlashMaps[system_get_flash_size_map()],
-        fid & 0xff, (fid & 0xff00) | ((fid >> 16) & 0xff),
+        (long unsigned int)(fid & 0xff), (long unsigned int)((fid & 0xff00) | ((fid >> 16) & 0xff)),
         flash,
         ESP.getFreeHeap(),
         getWorld()->getLogger()->getPosition(),

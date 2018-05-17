@@ -106,16 +106,18 @@ MavESP8266World* getWorld()
 //-- Wait for a DHCPD client
 void wait_for_client() {
     DEBUG_LOG("Waiting for a client...\n");
+#ifdef ENABLE_DEBUG
     int wcount = 0;
+#endif
     uint8 client_count = wifi_softap_get_station_num();
     while (!client_count) {
-        #ifdef ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
         Serial1.print(".");
         if(++wcount > 80) {
             wcount = 0;
             Serial1.println();
         }
-        #endif
+#endif
         delay(1000);
         client_count = wifi_softap_get_station_num();
     }

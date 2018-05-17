@@ -299,7 +299,8 @@ MavESP8266Component::_handleCmdLong(MavESP8266Bridge* sender, mavlink_command_lo
             sender->_send_chan,
             &msg,
             cmd->command,
-            result
+            result,
+            0,0,0,0
         );
         sender->sendMessage(&msg);
     }

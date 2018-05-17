@@ -34,4 +34,3 @@ install:
 
 script:
     - platformio run -e esp01_1m
-

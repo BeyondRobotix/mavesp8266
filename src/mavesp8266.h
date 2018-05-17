@@ -41,7 +41,9 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
-#include <mavlink.h>
+
+#undef F
+#include <ardupilotmega/mavlink.h>
 
  extern "C" {
     // Espressif SDK
@@ -63,7 +65,7 @@ class MavESP8266GCS;
 //-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
 #define MAVESP8266_VERSION_MINOR    2
-#define MAVESP8266_VERSION_BUILD    1
+#define MAVESP8266_VERSION_BUILD    2
 #define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX).
