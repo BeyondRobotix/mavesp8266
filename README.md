@@ -2,7 +2,8 @@
 
 ## Current Binary
 
-Download the current version from here: [Firmware version 1.1.1](http://www.grubba.com/mavesp8266/firmware-1.1.1.bin)
+Download the current version (MAVLink V2) from here: [Firmware version 1.2.2](http://www.grubba.com/mavesp8266/firmware-1.2.2.bin)
+Download the legacy version (MAVLink V1) from here: [Firmware version 1.1.1](http://www.grubba.com/mavesp8266/firmware-1.1.1.bin)
 
 ## ESP8266 WiFi Access Point and MavLink Bridge
 
