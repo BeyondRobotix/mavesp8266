@@ -42,13 +42,9 @@
 
 //---------------------------------------------------------------------------------
 MavESP8266Vehicle::MavESP8266Vehicle()
-    : _queue_count(0)
-    , _queue_time(0)
-    , _buffer_status(50.0)
 {
     _recv_chan = MAVLINK_COMM_0;
     _send_chan = MAVLINK_COMM_1;
-    memset(_message, 0 , sizeof(_message));
 }
 
 //---------------------------------------------------------------------------------
@@ -66,48 +62,21 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
 #endif
 #endif
     // raise serial buffer size (default is 256)
-    Serial.setRxBufferSize(1024);
+    Serial.setRxBufferSize(4096);
 }
+
 
 //---------------------------------------------------------------------------------
 //-- Read MavLink message from UAS
 void
 MavESP8266Vehicle::readMessage()
 {
-    if(_queue_count < UAS_QUEUE_SIZE) {
-        if(_readMessage()) {
-            _queue_count++;
-        }
-    }
-    //-- Do we have a message to send and is it time to forward data?
-    if(_queue_count && (_queue_count >= UAS_QUEUE_THRESHOLD || (millis() - _queue_time) > UAS_QUEUE_TIMEOUT)) {
-        int sent = _forwardTo->sendMessage(_message, _queue_count);
-        //-- Sent it all?
-        if(sent == _queue_count) {
-            memset(_message, 0, sizeof(_message));
-            _queue_count = 0;
-            _queue_time  = millis();
-        //-- Sent at least some?
-        } else if(sent) {
-            //-- Move the pending ones up the queue
-            int left = _queue_count - sent;
-            for(int i = 0; i < left; i++) {
-                memcpy(&_message[sent+i], &_message[i], sizeof(mavlink_message_t));
-            }
-            _queue_count = left;
-        }
-        //-- Maintain buffer status
-        float cur_status  = 0.0;
-        float buffer_size = (float)UAS_QUEUE_THRESHOLD;
-        float buffer_left = (float)(UAS_QUEUE_THRESHOLD - _queue_count);
-        if(buffer_left > 0.0)
-            cur_status = ((buffer_left / buffer_size) * 100.0f);
-        _buffer_status = (_buffer_status * 0.05f) + (cur_status * 0.95);
+    if (_readMessage()) {
+        _forwardTo->sendMessage(&_msg);
     }
     //-- Update radio status (1Hz)
     if(_heard_from && (millis() - _last_status_time > 1000)) {
         delay(0);
-        _sendRadioStatus();
         _last_status_time = millis();
     }
 }
@@ -133,21 +102,15 @@ MavESP8266Vehicle::readMessageRaw() {
 //---------------------------------------------------------------------------------
 //-- Send MavLink message to UAS
 int
-MavESP8266Vehicle::sendMessage(mavlink_message_t* message, int count) {
-    for(int i = 0; i < count; i++) {
-        sendMessage(&message[i]);
-    }
-    return count;
-}
-
-//---------------------------------------------------------------------------------
-//-- Send MavLink message to UAS
-int
 MavESP8266Vehicle::sendMessage(mavlink_message_t* message) {
     // Translate message to buffer
     char buf[300];
     unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, message);
     // Send it
+    while (Serial.availableForWrite() < 32) {
+        // don't spin in the send loop, wait for 25% of the FIFO to be free
+        delay(1);
+    }
     Serial.write((uint8_t*)(void*)buf, len);
     _status.packets_sent++;
     return 1;
@@ -165,7 +128,7 @@ MavESP8266Vehicle::sendMessageRaw(uint8_t *buffer, int len) {
 linkStatus*
 MavESP8266Vehicle::getStatus()
 {
-    _status.queue_status = (uint8_t)_buffer_status;
+    _status.queue_status = 0;
     return &_status;
 }
 
@@ -181,40 +144,48 @@ MavESP8266Vehicle::_readMessage()
         if (result >= 0)
         {
             // Parsing
+            uint8_t last_parse_error = _rxstatus.parse_error;
             msgReceived = mavlink_frame_char_buffer(&_rxmsg,
                                                     &_rxstatus,
                                                     result,
-                                                    &_message[_queue_count],
+                                                    &_msg,
                                                     &_mav_status);
+            if (last_parse_error != _rxstatus.parse_error) {
+                _status.parse_errors++;                
+            }
             if(msgReceived) {
                 _status.packets_received++;
                 //-- Is this the first packet we got?
                 if(!_heard_from) {
-                    if(_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+                    if(_msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                         _heard_from     = true;
-                        _component_id   = _message[_queue_count].compid;
-                        _system_id      = _message[_queue_count].sysid;
-                        _seq_expected   = _message[_queue_count].seq + 1;
+                        _component_id   = _msg.compid;
+                        _system_id      = _msg.sysid;
+                        _seq_expected   = _msg.seq + 1;
                         _last_heartbeat = millis();
                     }
                 } else {
-                    if(_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT)
+                    if(_msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
                         _last_heartbeat = millis();
-                    _checkLinkErrors(&_message[_queue_count]);
+                    _checkLinkErrors(&_msg);
                 }
 
-                if (msgReceived == MAVLINK_FRAMING_BAD_CRC ||
-                    msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                if (msgReceived == MAVLINK_FRAMING_BAD_CRC) {
                     // we don't process messages locally with bad CRC,
                     // but we do forward them, so when new messages
                     // are added we can bridge them
                     break;
                 }
 
+#ifdef MAVLINK_FRAMING_BAD_SIGNATURE
+                if (msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                    break;
+                }
+#endif
+                
                 //-- Check for message we might be interested
-                if(getWorld()->getComponent()->handleMessage(this, &_message[_queue_count])){
+                if(getWorld()->getComponent()->handleMessage(this, &_msg)){
                     //-- Eat message (don't send it to GCS)
-                    memset(&_message[_queue_count], 0, sizeof(mavlink_message_t));
                     msgReceived = false;
                     continue;
                 }
@@ -232,27 +203,3 @@ MavESP8266Vehicle::_readMessage()
     return msgReceived;
 }
 
-//---------------------------------------------------------------------------------
-//-- Send Radio Status
-void
-MavESP8266Vehicle::_sendRadioStatus()
-{
-    getStatus();
-    //-- Build message
-    mavlink_message_t msg {};
-    mavlink_msg_radio_status_pack_chan(
-        _forwardTo->systemID(),
-        MAV_COMP_ID_UDP_BRIDGE,
-        _send_chan,
-        &msg,
-        0,      // We don't have access to RSSI
-        0,      // We don't have access to Remote RSSI
-        _status.queue_status, // UDP queue status
-        0,      // We don't have access to noise data
-        0,      // We don't have access to remote noise data
-        (uint16_t)(_status.packets_lost / 10),
-        0       // We don't fix anything
-    );
-    sendMessage(&msg);
-    _status.radio_status_sent++;
-}

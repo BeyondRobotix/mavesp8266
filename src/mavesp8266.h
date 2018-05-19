@@ -83,6 +83,7 @@ struct linkStatus {
     uint32_t    packets_received;
     uint32_t    packets_lost;
     uint32_t    packets_sent;
+    uint32_t    parse_errors;
     uint32_t    radio_status_sent;
     uint8_t     queue_status;
 };
@@ -96,7 +97,6 @@ public:
     virtual void    begin           (MavESP8266Bridge* forwardTo);
     virtual void    readMessage     () = 0;
     virtual void    readMessageRaw  () = 0;
-    virtual int     sendMessage     (mavlink_message_t* message, int count) = 0;
     virtual int     sendMessage     (mavlink_message_t* message) = 0;
     virtual int     sendMessageRaw   (uint8_t *buffer, int len) = 0;
     virtual bool    heardFrom       () { return _heard_from;    }
@@ -107,7 +107,6 @@ public:
     mavlink_channel_t       _recv_chan;
 protected:
     virtual void    _checkLinkErrors(mavlink_message_t* msg);
-    virtual void    _sendRadioStatus() = 0;
 protected:
     bool                    _heard_from;
     uint8_t                 _system_id;

@@ -134,6 +134,7 @@ void handle_upload_status() {
             DEBUG_SERIAL.setDebugOutput(true);
         #endif
         WiFiUDP::stopAll();
+        Serial.end();
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
         #endif
@@ -321,12 +322,16 @@ static void handle_getStatus()
     message += gcsStatus->packets_sent;
     message += "</td></tr><tr><td>GCS Packets Lost</td><td>";
     message += gcsStatus->packets_lost;
+    message += "</td></tr><tr><td>GCS Parse Errors</td><td>";
+    message += gcsStatus->parse_errors;
     message += "</td></tr><tr><td>Packets Received from Vehicle</td><td>";
     message += vehicleStatus->packets_received;
     message += "</td></tr><tr><td>Packets Sent to Vehicle</td><td>";
     message += vehicleStatus->packets_sent;
     message += "</td></tr><tr><td>Vehicle Packets Lost</td><td>";
     message += vehicleStatus->packets_lost;
+    message += "</td></tr><tr><td>Vehicle Parse Errors</td><td>";
+    message += vehicleStatus->parse_errors;
     message += "</td></tr><tr><td>Radio Messages</td><td>";
     message += gcsStatus->radio_status_sent;
     message += "</td></tr></table>";

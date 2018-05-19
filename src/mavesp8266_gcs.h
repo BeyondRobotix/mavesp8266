@@ -38,6 +38,9 @@
 #ifndef MAVESP8266_GCS_H
 #define MAVESP8266_GCS_H
 
+//-- UDP Outgoing buffer timeout
+#define UDP_QUEUE_TIMEOUT       5 // 5ms
+
 #include "mavesp8266.h"
 
 class MavESP8266GCS : public MavESP8266Bridge {
@@ -47,7 +50,6 @@ public:
     void    begin                   (MavESP8266Bridge* forwardTo, IPAddress gcsIP);
     void    readMessage             ();
     void    readMessageRaw          ();
-    int     sendMessage             (mavlink_message_t* message, int count);
     int     sendMessage             (mavlink_message_t* message);
     int     sendMessageRaw           (uint8_t *buffer, int len);
 protected:
@@ -57,6 +59,7 @@ private:
     bool    _readMessage            ();
     void    _sendSingleUdpMessage   (mavlink_message_t* msg);
     void    _checkUdpErrors         (mavlink_message_t* msg);
+    void    _send_pending           ();
 
 private:
     WiFiUDP             _udp;
@@ -64,6 +67,10 @@ private:
     uint16_t            _udp_port;
     mavlink_message_t   _message;
     unsigned long       _last_status_time;
+    uint8_t             _sendbuf[1400];
+    uint16_t            _sendbuf_ofs;
+    uint16_t            _packets_queued;
+    uint32_t            _send_start_ms;
 };
 
 #endif
