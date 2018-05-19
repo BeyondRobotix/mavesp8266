@@ -77,6 +77,13 @@ const char* kFlashMaps[7] = {
     "4MB (1024/1024)"
 };
 
+// convert git version and build date to string
+#define str(s) #s
+#define xstr(s) str(s)
+#define GIT_VERSION_STRING xstr(PIO_SRC_REV)
+#define BUILD_DATE_STRING xstr(PIO_BUILD_DATE)
+#define BUILD_TIME_STRING xstr(PIO_BUILD_TIME)
+
 static uint32_t flash = 0;
 static char paramCRC[12] = {""};
 
@@ -208,6 +215,14 @@ static void handle_root()
     char vstr[30];
     snprintf(vstr, sizeof(vstr), "%u.%u.%u", MAVESP8266_VERSION_MAJOR, MAVESP8266_VERSION_MINOR, MAVESP8266_VERSION_BUILD);
     message += vstr;
+    message += "<br>\n";
+    message += "Git Version: ";
+    message += GIT_VERSION_STRING;
+    message += "<br>\n";
+    message += "Build Date: ";
+    message += BUILD_DATE_STRING;
+    message += " ";
+    message += BUILD_TIME_STRING;
     message += "<p>\n";
     message += "<ul>\n";
     message += "<li><a href='/getstatus'>Get Status</a>\n";
