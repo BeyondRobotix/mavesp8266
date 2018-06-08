@@ -230,7 +230,17 @@ static void handle_root()
     message += "<li><a href='/getparameters'>Get Parameters</a>\n";
     message += "<li><a href='/update'>Update Firmware</a>\n";
     message += "<li><a href='/reboot'>Reboot</a>\n";
-    message += "</ul></body>";
+    message += "</ul>\n";
+    message += "<hr>\n";
+    message += "<h2>Documentation</h2>\n";
+    message += "(requires internet access)<br>\n";
+    message += "<ul>\n";
+    message += "<li><a href='http://ardupilot.org'>ArduPilot Website</a>\n";
+    message += "<li><a href='http://ardupilot.org/copter/docs/common-esp8266-telemetry.html'>ESP8266 WiFi Documentation</a>\n";
+    message += "<li><a href='https://github.com/ArduPilot/mavesp8266'>ESP8266 Source Code</a>\n";
+    message += "<li><a href='http://firmware.ardupilot.org/Tools/MAVESP8266/'>ESP8266 Firmware Updates</a>\n";
+    message += "</ul>\n";
+    message += "</body>";
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
 }
