@@ -40,7 +40,7 @@ The ```git clone --recursive``` above not only cloned the MavESP8266 repository 
 
 ### Wiring it up
 
-User level (as well as wiring) instructions can be found here: https://pixhawk.org/peripherals/8266
+User level (as well as wiring) instructions can be found [here for px4](https://docs.px4.io/en/telemetry/esp8266_wifi_module.html) and [here for ArduPilot](http://ardupilot.org/copter/docs/common-esp8266-telemetry.html)
 
 * Resetting to Defaults: In case you change the parameters and get locked out of the module, all the parameters can be reset by bringing the GPIO02 pin low (Connect GPIO02 pin to GND pin). 
 
