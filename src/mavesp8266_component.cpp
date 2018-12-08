@@ -99,6 +99,10 @@ MavESP8266Component::handleMessage(MavESP8266Bridge* sender, mavlink_message_t* 
       if(param.target_component == MAV_COMP_ID_ALL || param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
           _handleParamRequestList(sender);
       }
+      if(param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
+          // don't pass it along
+          return true;
+      }
   //-----------------------------------------------
   //-- MAVLINK_MSG_ID_PARAM_REQUEST_READ
   } else if(message->msgid == MAVLINK_MSG_ID_PARAM_REQUEST_READ) {
@@ -112,10 +116,10 @@ MavESP8266Component::handleMessage(MavESP8266Bridge* sender, mavlink_message_t* 
           } else {
               _handleParamRequestRead(sender, &param);
               //-- If this was addressed to me only eat message
-              if(param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
-                  //-- Eat message (don't send it to FC)
-                  return true;
-              }
+          }
+          if(param.target_component == MAV_COMP_ID_UDP_BRIDGE) {
+              //-- Eat message (don't send it to FC)
+              return true;
           }
       }
   }
