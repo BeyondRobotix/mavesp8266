@@ -119,6 +119,11 @@ protected:
     mavlink_status_t        _mav_status;
     mavlink_message_t       _rxmsg;
     mavlink_status_t        _rxstatus;
+
+    void handle_non_mavlink(uint8_t b, bool msgReceived);
+    uint8_t _non_mavlink_buffer[270];
+    uint16_t _non_mavlink_len;
+    mavlink_parse_state_t _last_parse_state;
 };
 
 //---------------------------------------------------------------------------------

@@ -169,3 +169,35 @@ MavESP8266Log::getPosition()
 {
     return _log_position;
 }
+
+/*
+  helper to allow non-mavlink pkts to get through
+ */
+void MavESP8266Bridge::handle_non_mavlink(uint8_t b, bool msgReceived)
+{
+    if (_rxstatus.parse_state > MAVLINK_PARSE_STATE_IDLE &&
+        _last_parse_state <= MAVLINK_PARSE_STATE_IDLE &&
+        _non_mavlink_len != 0) {
+        // flush out bytes from before the mavlink packet
+        _forwardTo->sendMessageRaw(_non_mavlink_buffer, _non_mavlink_len);
+        _non_mavlink_len = 0;
+    }
+    if (!msgReceived) {
+        // accumulate bytes
+        _non_mavlink_buffer[_non_mavlink_len++] = b;
+        if (_non_mavlink_len == sizeof(_non_mavlink_buffer)) {
+            _forwardTo->sendMessageRaw(_non_mavlink_buffer, _non_mavlink_len);
+            _non_mavlink_len = 0;
+        }
+        if (_last_parse_state > MAVLINK_PARSE_STATE_IDLE &&
+            _rxstatus.parse_state <= MAVLINK_PARSE_STATE_IDLE &&
+            _non_mavlink_len > 0) {
+            // parser has given up on this packet
+            _forwardTo->sendMessageRaw(_non_mavlink_buffer, _non_mavlink_len);
+            _non_mavlink_len = 0;
+        }
+    } else {
+        _non_mavlink_len = 0;
+    }
+    _last_parse_state = _rxstatus.parse_state;
+}

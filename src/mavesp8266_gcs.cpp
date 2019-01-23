@@ -93,6 +93,12 @@ MavESP8266GCS::_readMessage()
 {
     bool msgReceived = false;
     int udp_count = _udp.parsePacket();
+    if (udp_count <= 0 && _non_mavlink_len != 0 && _rxstatus.parse_state <= MAVLINK_PARSE_STATE_IDLE) {
+        // flush out the non-mavlink buffer when there is nothing pending. This
+        // allows us to gather non-mavlink msgs into a single write
+        _forwardTo->sendMessageRaw(_non_mavlink_buffer, _non_mavlink_len);
+        _non_mavlink_len = 0;
+    }
     if(udp_count > 0)
     {
         while(udp_count--)
@@ -107,6 +113,7 @@ MavESP8266GCS::_readMessage()
                                                         result,
                                                         &_message,
                                                         &_mav_status);
+                handle_non_mavlink(result, msgReceived);
                 if (last_parse_error != _rxstatus.parse_error) {
                     _status.parse_errors++;                
                 }
