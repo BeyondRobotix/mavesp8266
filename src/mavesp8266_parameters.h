@@ -89,6 +89,7 @@ public:
         ID_GATEWAYSTA,
         ID_SUBNETSTA,
         ID_UART,
+        ID_RAW_ENABLE,
         ID_COUNT
     };
 
@@ -112,6 +113,7 @@ public:
     uint32_t    getWifiStaGateway           ();
     uint32_t    getWifiStaSubnet            ();
     uint32_t    getUartBaudRate             ();
+    int8_t      getRawEnable                ();
 
     void        setDebugEnabled             (int8_t enabled);
     void        setWifiMode                 (int8_t mode);

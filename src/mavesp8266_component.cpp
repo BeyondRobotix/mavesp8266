@@ -279,7 +279,7 @@ MavESP8266Component::_handleCmdLong(MavESP8266Bridge* sender, mavlink_command_lo
             result = MAV_RESULT_ACCEPTED;
             getWorld()->getParameters()->resetToDefaults();
         }
-    } else if(cmd->command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
+    } else if(getWorld()->getParameters()->getRawEnable() && cmd->command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
         //-- Reset "Companion Computer"
         if((uint8_t)cmd->param2 == 1) {
             result = MAV_RESULT_ACCEPTED;
