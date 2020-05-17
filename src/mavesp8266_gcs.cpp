@@ -73,11 +73,15 @@ MavESP8266GCS::readMessage()
         _forwardTo->sendMessage(&_message);
         memset(&_message, 0, sizeof(_message));
     }
+    uint32_t now = millis();
     //-- Update radio status (1Hz)
-    if(_heard_from && (millis() - _last_status_time > 1000)) {
+    if(_heard_from && (now - _last_status_time > 1000)) {
         delay(0);
         _sendRadioStatus();
         _last_status_time = millis();
+    }
+    if (_sendbuf_ofs > 0 && (now - _send_start_ms > UDP_QUEUE_TIMEOUT || _packets_queued >= 20)) {
+        _send_pending();
     }
 }
 
@@ -97,11 +101,15 @@ MavESP8266GCS::_readMessage()
             if (result >= 0)
             {
                 // Parsing
+                uint8_t last_parse_error = _rxstatus.parse_error;
                 msgReceived = mavlink_frame_char_buffer(&_rxmsg,
                                                         &_rxstatus,
                                                         result,
                                                         &_message,
                                                         &_mav_status);
+                if (last_parse_error != _rxstatus.parse_error) {
+                    _status.parse_errors++;                
+                }
                 if(msgReceived) {
                     //-- We no longer need to broadcast
                     _status.packets_received++;
@@ -128,14 +136,19 @@ MavESP8266GCS::_readMessage()
                         _checkLinkErrors(&_message);
                     }
 
-                    if (msgReceived == MAVLINK_FRAMING_BAD_CRC ||
-                        msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                    if (msgReceived == MAVLINK_FRAMING_BAD_CRC) {
                         // we don't process messages locally with bad CRC,
                         // but we do forward them, so when new messages
                         // are added we can bridge them
                         break;
                     }
 
+#ifdef MAVLINK_FRAMING_BAD_SIGNATURE
+                    if (msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                        break;
+                    }
+#endif
+                    
                     //-- Check for message we might be interested
                     if(getWorld()->getComponent()->handleMessage(this, &_message)){
                         //-- Eat message (don't send it to FC)
@@ -193,36 +206,6 @@ MavESP8266GCS::readMessageRaw() {
 }
 
 //---------------------------------------------------------------------------------
-//-- Forward message(s) to the GCS
-int
-MavESP8266GCS::sendMessage(mavlink_message_t* message, int count) {
-    int sentCount = 0;
-    _udp.beginPacket(_ip, _udp_port);
-    for(int i = 0; i < count; i++) {
-        // Translate message to buffer
-        char buf[300];
-        unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, &message[i]);
-        // Send it
-        _status.packets_sent++;
-        size_t sent = _udp.write((uint8_t*)(void*)buf, len);
-        if(sent != len) {
-            break;
-            //-- Fibble attempt at not losing data until we get access to the socket TX buffer
-            //   status before we try to send.
-            _udp.endPacket();
-            delay(2);
-            _udp.beginPacket(_ip, _udp_port);
-            _udp.write((uint8_t*)(void*)&buf[sent], len - sent);
-            _udp.endPacket();
-            return sentCount;
-        }
-        sentCount++;
-    }
-    _udp.endPacket();
-    return sentCount;
-}
-
-//---------------------------------------------------------------------------------
 //-- Forward message to the GCS
 int
 MavESP8266GCS::sendMessage(mavlink_message_t* message) {
@@ -231,11 +214,11 @@ MavESP8266GCS::sendMessage(mavlink_message_t* message) {
 }
 
 int
-MavESP8266GCS::sendMessageRaw(uint8_t *buffer, int len) {
+MavESP8266GCS::sendMessageRaw(uint8_t *buffer, int len)
+{
     _udp.beginPacket(_ip, _udp_port);
     size_t sent = _udp.write(buffer, len);
     _udp.endPacket();
-    //_udp.flush();
     return sent;
 }
 
@@ -270,7 +253,7 @@ MavESP8266GCS::_sendRadioStatus()
         &msg,
         rssi,                   // RSSI Only valid in STA mode
         0,                      // We don't have access to Remote RSSI
-        st->queue_status,       // UDP queue status
+        100,
         0,                      // We don't have access to noise data
         lostVehicleMessages,    // Percent of lost messages from Vehicle (UART)
         lostGcsMessages,        // Percent of lost messages from GCS (UDP)
@@ -289,17 +272,27 @@ MavESP8266GCS::_sendSingleUdpMessage(mavlink_message_t* msg)
     // Translate message to buffer
     char buf[300];
     unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, msg);
-    // Send it
-    _udp.beginPacket(_ip, _udp_port);
-    size_t sent = _udp.write((uint8_t*)(void*)buf, len);
-    _udp.endPacket();
-    //-- Fibble attempt at not losing data until we get access to the socket TX buffer
-    //   status before we try to send.
-    if(sent != len) {
-        delay(1);
-        _udp.beginPacket(_ip, _udp_port);
-        _udp.write((uint8_t*)(void*)&buf[sent], len - sent);
-        _udp.endPacket();
+    if (len + _sendbuf_ofs > sizeof(_sendbuf)) {
+        _send_pending();
     }
-    _status.packets_sent++;
+    memcpy(&_sendbuf[_sendbuf_ofs], buf, len);
+    if (_sendbuf_ofs == 0) {
+        _send_start_ms = millis();
+    }
+    _packets_queued++;
+    _sendbuf_ofs += len;
+}
+
+/*
+  send pending data in _sendbuf
+ */
+void MavESP8266GCS::_send_pending(void)
+{
+    if (_sendbuf_ofs > 0) {
+        if (sendMessageRaw(_sendbuf, _sendbuf_ofs) == _sendbuf_ofs) {
+            _sendbuf_ofs = 0;
+            _status.packets_sent += _packets_queued;
+            _packets_queued = 0;
+        }
+    }
 }

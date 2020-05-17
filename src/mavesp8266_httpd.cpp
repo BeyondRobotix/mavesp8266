@@ -77,6 +77,13 @@ const char* kFlashMaps[7] = {
     "4MB (1024/1024)"
 };
 
+// convert git version and build date to string
+#define str(s) #s
+#define xstr(s) str(s)
+#define GIT_VERSION_STRING xstr(PIO_SRC_REV)
+#define BUILD_DATE_STRING xstr(PIO_BUILD_DATE)
+#define BUILD_TIME_STRING xstr(PIO_BUILD_TIME)
+
 static uint32_t flash = 0;
 static char paramCRC[12] = {""};
 
@@ -134,6 +141,7 @@ void handle_upload_status() {
             DEBUG_SERIAL.setDebugOutput(true);
         #endif
         WiFiUDP::stopAll();
+        Serial.end();
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
         #endif
@@ -207,6 +215,14 @@ static void handle_root()
     char vstr[30];
     snprintf(vstr, sizeof(vstr), "%u.%u.%u", MAVESP8266_VERSION_MAJOR, MAVESP8266_VERSION_MINOR, MAVESP8266_VERSION_BUILD);
     message += vstr;
+    message += "<br>\n";
+    message += "Git Version: ";
+    message += GIT_VERSION_STRING;
+    message += "<br>\n";
+    message += "Build Date: ";
+    message += BUILD_DATE_STRING;
+    message += " ";
+    message += BUILD_TIME_STRING;
     message += "<p>\n";
     message += "<ul>\n";
     message += "<li><a href='/getstatus'>Get Status</a>\n";
@@ -321,12 +337,16 @@ static void handle_getStatus()
     message += gcsStatus->packets_sent;
     message += "</td></tr><tr><td>GCS Packets Lost</td><td>";
     message += gcsStatus->packets_lost;
+    message += "</td></tr><tr><td>GCS Parse Errors</td><td>";
+    message += gcsStatus->parse_errors;
     message += "</td></tr><tr><td>Packets Received from Vehicle</td><td>";
     message += vehicleStatus->packets_received;
     message += "</td></tr><tr><td>Packets Sent to Vehicle</td><td>";
     message += vehicleStatus->packets_sent;
     message += "</td></tr><tr><td>Vehicle Packets Lost</td><td>";
     message += vehicleStatus->packets_lost;
+    message += "</td></tr><tr><td>Vehicle Parse Errors</td><td>";
+    message += vehicleStatus->parse_errors;
     message += "</td></tr><tr><td>Radio Messages</td><td>";
     message += gcsStatus->radio_status_sent;
     message += "</td></tr></table>";
