@@ -92,7 +92,11 @@ MavESP8266Vehicle::readMessage()
             //-- Move the pending ones up the queue
             int left = _queue_count - sent;
             for(int i = 0; i < left; i++) {
-                memcpy(&_message[sent+i], &_message[i], sizeof(mavlink_message_t));
+                //memcpy(&_message[sent+i], &_message[i], sizeof(mavlink_message_t));
+		// 0 <--- sent+1
+		// 1 <--- sent+2
+		// 2 <--- sent+3
+                memcpy(&_message[i], &_message[sent+i], sizeof(mavlink_message_t));
             }
             _queue_count = left;
         }
