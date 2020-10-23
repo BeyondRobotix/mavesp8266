@@ -113,6 +113,8 @@ public:
     uint32_t    getWifiStaSubnet            ();
     uint32_t    getUartBaudRate             ();
 
+    String      getLocalIPAddressInString   ();
+
     void        setDebugEnabled             (int8_t enabled);
     void        setWifiMode                 (int8_t mode);
     void        setWifiChannel              (uint32_t channel);
