@@ -58,7 +58,11 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
 {
     MavESP8266Bridge::begin(forwardTo);
     //-- Start UART connected to UAS
+#ifndef ESP32
     Serial.begin(getWorld()->getParameters()->getUartBaudRate());
+#else
+    Serial.begin(getWorld()->getParameters()->getUartBaudRate(), SERIAL_8N1, UART_MAVFC_RX , UART_MAVFC_TX);
+#endif
     //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
 #ifdef ENABLE_DEBUG
 #ifdef ARDUINO_ESP8266_ESP12

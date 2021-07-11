@@ -38,18 +38,25 @@
 #ifndef MAVESP8266_H
 #define MAVESP8266_H
 
-#include <ESP8266WiFi.h>
+#ifndef ESP32
+    #include <ESP8266WiFi.h>
+#else
+    #include <ESPmDNS.h>
+    #include <WiFi.h>
+    #include <WebServer.h> 
+#endif
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
 
 #undef F
 #include <ardupilotmega/mavlink.h>
 
+#ifdef ARDUINO_ESP8266_ESP12
  extern "C" {
     // Espressif SDK
     #include "user_interface.h"
 }
-
+#endif
 class MavESP8266Parameters;
 class MavESP8266Component;
 class MavESP8266Vehicle;
@@ -66,7 +73,7 @@ class MavESP8266GCS;
 #define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX).
-//#define ENABLE_DEBUG
+#define ENABLE_DEBUG
 
 #ifdef ENABLE_DEBUG
 #define DEBUG_LOG(format, ...) do { getWorld()->getLogger()->log(format, ## __VA_ARGS__); } while(0)

@@ -34,9 +34,9 @@
  *
  * @author Gus Grubba <mavlink@grubba.com>
  */
-
-#include <ESP8266WebServer.h>
-
+#ifndef ESP32
+    #include <ESP8266WebServer.h>
+#endif
 #include "mavesp8266.h"
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_parameters.h"
@@ -79,10 +79,17 @@ const char* kFlashMaps[7] = {
 
 static uint32_t flash = 0;
 static char paramCRC[12] = {""};
-
-ESP8266WebServer    webServer(80);
+#ifndef ESP32
+    ESP8266WebServer    webServer(80);
+#else
+    WebServer     webServer(80);
+    WiFiUDP       Update;
+#endif
 MavESP8266Update*   updateCB    = NULL;
 bool                started     = false;
+
+
+
 
 //---------------------------------------------------------------------------------
 void setNoCacheHeaders() {
@@ -112,7 +119,11 @@ void handle_update() {
 void handle_upload() {
     webServer.sendHeader("Connection", "close");
     webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+#ifndef ESP32
     webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? "FAIL" : "OK");
+#else
+    webServer.send(200, FPSTR(kTEXTPLAIN), "OK");
+#endif
     if(updateCB) {
         updateCB->updateCompleted();
     }
@@ -133,7 +144,11 @@ void handle_upload_status() {
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.setDebugOutput(true);
         #endif
+#ifndef ESP32
         WiFiUDP::stopAll();
+#else
+        Update.stop();
+#endif
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
         #endif
@@ -152,7 +167,11 @@ void handle_upload_status() {
             success = false;
         }
     } else if (upload.status == UPLOAD_FILE_END) {
+#ifndef ESP32
         if (Update.end(true)) {
+#else
+        if (Update.endPacket()) {
+#endif
             #ifdef DEBUG_SERIAL
                 DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
             #endif
@@ -332,7 +351,11 @@ static void handle_getStatus()
     message += "</td></tr></table>";
     message += "<p>System Status</p><table>\n";
     message += "<tr><td width=\"240\">Flash Size</td><td>";
+#ifndef ESP32
     message += ESP.getFlashChipRealSize();
+#else
+    message += ESP.getFlashChipSize();
+#endif
     message += "</td></tr>\n";
     message += "<tr><td width=\"240\">Flash Available</td><td>";
     message += flash;
@@ -368,24 +391,42 @@ void handle_getJLog()
 //---------------------------------------------------------------------------------
 void handle_getJSysInfo()
 {
-    if(!flash)
+    if(!flash){
         flash = ESP.getFreeSketchSpace();
+    }
     if(!paramCRC[0]) {
         snprintf(paramCRC, sizeof(paramCRC), "%08X", getWorld()->getParameters()->paramHashCheck());
     }
+#ifndef ESP32
     uint32_t fid = spi_flash_get_id();
+#else
+    uint32_t fid = 0;
+    for(int i=0; i<17; i=i+8) {
+	  fid |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+	}
+#endif
     char message[512];
     snprintf(message, 512,
         "{ "
+#ifndef ESP32
         "\"size\": \"%s\", "
         "\"id\": \"0x%02lX 0x%04lX\", "
+#else
+        "\"size\": \"%u\", "
+        "\"id\": \"%u\", "
+#endif
         "\"flashfree\": \"%u\", "
         "\"heapfree\": \"%u\", "
         "\"logsize\": \"%u\", "
         "\"paramcrc\": \"%s\""
         " }",
+#ifndef ESP32
         kFlashMaps[system_get_flash_size_map()],
         (long unsigned int)(fid & 0xff), (long unsigned int)((fid & 0xff00) | ((fid >> 16) & 0xff)),
+#else
+        ESP.getFlashChipSize(),
+        fid,
+#endif
         flash,
         ESP.getFreeHeap(),
         getWorld()->getLogger()->getPosition(),

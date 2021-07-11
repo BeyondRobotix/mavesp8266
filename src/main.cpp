@@ -34,6 +34,7 @@
  *
  * @author Gus Grubba <mavlink@grubba.com>
  */
+#include <Arduino.h>
 
 #include "mavesp8266.h"
 #include "mavesp8266_parameters.h"
@@ -41,9 +42,11 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_component.h"
-
-#include <ESP8266mDNS.h>
-
+#ifdef ESP32
+    #include <ESPmDNS.h>
+#else
+    #include <ESP8266mDNS.h>
+#endif
 #define GPIO02  2
 
 //---------------------------------------------------------------------------------
@@ -109,7 +112,11 @@ void wait_for_client() {
 #ifdef ENABLE_DEBUG
     int wcount = 0;
 #endif
-    uint8 client_count = wifi_softap_get_station_num();
+#ifdef ESP32  
+    uint8_t client_count = WiFi.softAPgetStationNum();
+#else
+    uint8_t client_count = wifi_softap_get_station_num();
+#endif
     while (!client_count) {
 #ifdef ENABLE_DEBUG
         Serial1.print(".");
@@ -119,7 +126,11 @@ void wait_for_client() {
         }
 #endif
         delay(1000);
+#ifdef ESP32
+        client_count = WiFi.softAPgetStationNum();
+#else
         client_count = wifi_softap_get_station_num();
+#endif
     }
     DEBUG_LOG("Got %d client(s)\n", client_count);
 }
@@ -129,7 +140,12 @@ void wait_for_client() {
 void reset_interrupt(){
     Parameters.resetToDefaults();
     Parameters.saveAllToEeprom();
+#ifndef ESP32
     ESP.reset();
+#else
+    delay(200); // to be sure of the Eeprom end to write 
+    ESP.restart();
+#endif
 }
 
 //---------------------------------------------------------------------------------
@@ -140,11 +156,15 @@ void setup() {
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
+#ifndef ESP32
     Serial1.begin(115200);
-#else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
     attachInterrupt(GPIO02, reset_interrupt, FALLING);
+#else
+    Serial1.begin(115200, SERIAL_8N1, UART_DEBUG_RX, UART_DEBUG_TX );
+#endif
+    
 #endif
     Logger.begin(2048);
 
@@ -152,10 +172,11 @@ void setup() {
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
 
     WiFi.disconnect(true);
-
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
         //-- Connect to an existing network
+#ifndef ESP32
         WiFi.mode(WIFI_STA);
+#endif
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
 
@@ -178,15 +199,23 @@ void setup() {
 
     if(Parameters.getWifiMode() == WIFI_MODE_AP){
         //-- Start AP
+#ifndef ESP32
         WiFi.mode(WIFI_AP);
         WiFi.encryptionType(AUTH_WPA2_PSK);
+#else
+        WiFi.encryptionType(WIFI_AUTH_WPA2_PSK);
+#endif
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
         localIP = WiFi.softAPIP();
         wait_for_client();
     }
 
     //-- Boost power to Max
+#ifndef ESP32
     WiFi.setOutputPower(20.5);
+#else
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
+#endif
     //-- MDNS
     char mdsnName[256];
     sprintf(mdsnName, "MavEsp8266-%d",localIP[3]);

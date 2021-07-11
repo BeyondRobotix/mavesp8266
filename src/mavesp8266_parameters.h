@@ -42,6 +42,12 @@
 #define WIFI_MODE_STA 1
 
 //-- Constants
+#ifdef ESP32
+    #define UART_DEBUG_TX  GPIO_NUM_1
+    #define UART_DEBUG_RX  GPIO_NUM_3
+    #define UART_MAVFC_TX  GPIO_NUM_17
+    #define UART_MAVFC_RX  GPIO_NUM_16
+#endif
 #define DEFAULT_WIFI_MODE       WIFI_MODE_AP
 #define DEFAULT_UART_SPEED      921600
 #define DEFAULT_WIFI_CHANNEL    11

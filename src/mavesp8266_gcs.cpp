@@ -40,6 +40,7 @@
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
 
+
 //---------------------------------------------------------------------------------
 MavESP8266GCS::MavESP8266GCS()
     : _udp_port(DEFAULT_UDP_HPORT)
@@ -113,9 +114,15 @@ MavESP8266GCS::_readMessage()
                     if(!_heard_from) {
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                             //-- We no longer need DHCP
+
                             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
+#ifndef ESP32
                                 wifi_softap_dhcps_stop();
+#else
+                                tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
+#endif
                             }
+
                             _heard_from      = true;
                             _system_id       = _message.sysid;
                             _component_id    = _message.compid;
@@ -155,8 +162,13 @@ MavESP8266GCS::_readMessage()
         if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
             //-- Restart DHCP and start broadcasting again
             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
+#ifndef ESP32
                 wifi_softap_dhcps_start();
+#else
+                tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP);
+#endif
             }
+
             _heard_from = false;
             _ip[3] = 255;
             getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
@@ -248,11 +260,15 @@ MavESP8266GCS::_sendRadioStatus()
     uint8_t rssi = 0;
     uint8_t lostVehicleMessages = 100;
     uint8_t lostGcsMessages = 100;
-
+#ifndef ESP32
     if(wifi_get_opmode() == STATION_MODE) {
         rssi = (uint8_t)wifi_station_get_rssi();
     }
-
+#else
+    if(WiFi.getMode() == WIFI_MODE_STA) {
+        rssi = (uint8_t)WiFi.RSSI();
+    }
+#endif
     if (st->packets_received > 0) {
         lostVehicleMessages = (st->packets_lost * 100) / st->packets_received;
     }
