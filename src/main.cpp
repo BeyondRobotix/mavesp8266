@@ -151,6 +151,10 @@ void reset_interrupt(){
 //---------------------------------------------------------------------------------
 //-- Set things up
 void setup() {
+#ifdef ESP32
+    //downgrade CPU speed to reduce power consumption
+    setCpuFrequencyMhz(160);
+#endif
     delay(1000);
     Parameters.begin();
 #ifdef ENABLE_DEBUG
