@@ -41,8 +41,8 @@
 #include "mavesp8266_parameters.h"
 #include "crc.h"
 
-const char* kDEFAULT_SSID       = "PixRacer";
-const char* kDEFAULT_PASSWORD   = "pixracer";
+const char* kDEFAULT_SSID       = "MAVESPX2";
+const char* kDEFAULT_PASSWORD   = "mavespx2";
 
 //-- Reserved space for EEPROM persistence. A change in this will cause all values to reset to defaults.
 #define EEPROM_SPACE            32 * sizeof(uint32_t)
