@@ -277,7 +277,8 @@ MavESP8266Component::_handleCmdLong(MavESP8266Bridge* sender, mavlink_command_lo
         }
     } else if(cmd->command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
         //-- Reset "Companion Computer"
-        if((uint8_t)cmd->param2 == 1) {
+        if(((compID == MAV_COMP_ID_UDP_BRIDGE) || (compID == MAV_COMP_ID_ALL)) 
+            && (uint8_t)cmd->param2 == 1) {
             result = MAV_RESULT_ACCEPTED;
             reboot = true;
         }
@@ -316,7 +317,9 @@ void
 MavESP8266Component::_wifiReboot(MavESP8266Bridge* sender)
 {
     _sendStatusMessage(sender, MAV_SEVERITY_NOTICE, "Rebooting WiFi Bridge.");
-    delay(50);
+    delay(100);
+    getWorld()->getParameters()->saveAllToEeprom(); //backup all changes done in parameters before reboot
+    delay(100);
 #ifndef ESP32
     ESP.reset();
 #else
