@@ -43,6 +43,25 @@
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
 
+#define WIFI_RX_VERY_LOW 0
+#define WIFI_RX_UNRELIABLE 1
+#define WIFI_RX_WEAK 2
+#define WIFI_RX_RELIABLE 3
+#define WIFI_RX_GOOD 4
+#define WIFI_RX_EXCELLENT 5
+#define WIFI_RX_MAX 6
+
+//Strength Wifi Signal based on https://eyesaas.com/wi-fi-signal-strength/
+const char* kWifiStrength[7] = {
+    "Very Low",                //(<= -90dBm)
+    "Unreliable",              //(<= -80dBm)
+    "Weak",                    //(<= -70dBm)
+    "Reliable",                //(<= -67dBm)
+    "Good",                    //(<= -60dBm)
+    "Excellent",               //(<=-50dBm)
+    "Maximum"                  //(<= -30dBm)
+};
+
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
 const char PROGMEM kTEXTHTML[]   = "text/html";
 const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
@@ -50,7 +69,7 @@ const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVLink WiFi Bridge</a></h1>
 #ifndef ENABLE_DEBUG
     const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVLink WiFi Bridge</a></h1>";
 #else
-    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge (DEBUG)</title></head><body><h1><a href='/'>MAVLink WiFi Bridge</a></h1>";
+    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge (DEBUG)</title></head><body><h1><a href='/'>MAVLink WiFi Bridge (DEBUG)</a></h1>";
 #endif
 const char PROGMEM kBADARG[]     = "BAD ARGS";
 const char PROGMEM kAPPJSON[]    = "application/json";
@@ -325,11 +344,11 @@ static void handle_setup()
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
 }
-
-
 //---------------------------------------------------------------------------------
 static void handle_getStatus()
 {
+    int8_t iRssi = 0;
+    int8_t iWifiThreshold = 0; 
     if(!flash)
         flash = ESP.getFreeSketchSpace();
     if(!paramCRC[0]) {
@@ -337,6 +356,22 @@ static void handle_getStatus()
     }
     linkStatus* gcsStatus = getWorld()->getGCS()->getStatus();
     linkStatus* vehicleStatus = getWorld()->getVehicle()->getStatus();
+    if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_STA){
+        iRssi = WiFi.RSSI();
+        iWifiThreshold = 0; 
+        if(iRssi == 0) {
+            iWifiThreshold = WIFI_RX_MAX;
+        }else{
+            iWifiThreshold = (iRssi <= -90)? WIFI_RX_VERY_LOW : iWifiThreshold;
+            iWifiThreshold = ((-90 < iRssi) && (iRssi <= -80)) ? WIFI_RX_VERY_LOW : iWifiThreshold;
+            iWifiThreshold = ((-80 < iRssi) && (iRssi <= 70)) ? WIFI_RX_UNRELIABLE : iWifiThreshold;
+            iWifiThreshold = ((-70 < iRssi) && (iRssi <= 67)) ? WIFI_RX_WEAK : iWifiThreshold;
+            iWifiThreshold = ((-67 < iRssi) && (iRssi <= 60)) ? WIFI_RX_RELIABLE : iWifiThreshold;
+            iWifiThreshold = ((-60 < iRssi) && (iRssi <= 50)) ? WIFI_RX_GOOD : iWifiThreshold;
+            iWifiThreshold = ((-50 < iRssi) && (iRssi <= 30)) ? WIFI_RX_EXCELLENT : iWifiThreshold;
+            iWifiThreshold = (-30 <= iRssi) ? WIFI_RX_MAX : iWifiThreshold;
+        }
+    }
     String message = FPSTR(kHEADER);
     message += "<p>Comm Status</p><table><tr><td width=\"240\">Packets Received from GCS</td><td>";
     message += gcsStatus->packets_received;
@@ -354,6 +389,13 @@ static void handle_getStatus()
     message += gcsStatus->radio_status_sent;
     message += "</td></tr></table>";
     message += "<p>System Status</p><table>\n";
+    if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_STA){
+        message += "<tr><td width=\"240\">Wifi Signal Strength (RSSI)</td><td>";
+        message += iRssi; 
+        message += " dBm ";
+        message += kWifiStrength[iWifiThreshold];
+        message += "</td></tr>\n";
+    }
     message += "<tr><td width=\"240\">Flash Size</td><td>";
 #ifndef ESP32
     message += ESP.getFlashChipRealSize();
