@@ -54,6 +54,8 @@
 #define DEFAULT_UDP_HPORT       14550
 #define DEFAULT_UDP_CPORT       14555
 
+#define DNSNAME "MavEspX2"
+
 struct stMavEspParameters {
     char        id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];
     void*       value;

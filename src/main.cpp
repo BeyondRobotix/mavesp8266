@@ -171,12 +171,11 @@ void setup() {
     
 #endif
     Logger.begin(2048);
-
-    DEBUG_LOG("\nConfiguring access point...\n");
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
 
     WiFi.disconnect(true);
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
+        DEBUG_LOG("\nConfiguring Wifi Station...\n");
         //-- Connect to an existing network
 #ifndef ESP32
         WiFi.mode(WIFI_STA);
@@ -202,6 +201,7 @@ void setup() {
     }
 
     if(Parameters.getWifiMode() == WIFI_MODE_AP){
+        DEBUG_LOG("\nConfiguring access point...\n");
         //-- Start AP
 #ifndef ESP32
         WiFi.mode(WIFI_AP);
@@ -221,10 +221,13 @@ void setup() {
     WiFi.setTxPower(WIFI_POWER_19_5dBm);
 #endif
     //-- MDNS
-    char mdsnName[256];
-    sprintf(mdsnName, "MavEsp8266-%d",localIP[3]);
-    MDNS.begin(mdsnName);
-    MDNS.addService("http", "tcp", 80);
+    DEBUG_LOG("Start mDNS...\n");
+    if(MDNS.begin(DNSNAME)){
+        MDNS.addService("http", "tcp", 80);
+        DEBUG_LOG("http://%s.local exposed...\n",DNSNAME);
+    }else{
+        DEBUG_LOG("Url : %s.local NOT exposed (Error)...\n", DNSNAME);
+    }
     //-- Initialize Comm Links
     DEBUG_LOG("Start WiFi Bridge\n");
     DEBUG_LOG("Local IP: %s\n", localIP.toString().c_str());
