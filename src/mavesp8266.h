@@ -53,7 +53,10 @@
 #include <WiFiUdp.h>
 
 #undef F
+#pragma GCC diagnostic push 
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #include <ardupilotmega/mavlink.h>
+#pragma GCC diagnostic pop
 
 #ifdef ARDUINO_ESP8266_ESP12
  extern "C" {
