@@ -42,6 +42,7 @@
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
+#include <Update.h>
 
 #define WIFI_RX_VERY_LOW 0
 #define WIFI_RX_UNRELIABLE 1
@@ -110,7 +111,7 @@ static char paramCRC[12] = {""};
     ESP8266WebServer    webServer(80);
 #else
     WebServer     webServer(80);
-    WiFiUDP       Update;
+    WiFiUDP       Udp;
 #endif
 MavESP8266Update*   updateCB    = NULL;
 bool                started     = false;
@@ -174,7 +175,7 @@ void handle_upload_status() {
 #ifndef ESP32
         WiFiUDP::stopAll();
 #else
-        Update.stop();
+        Udp.stop();
 #endif
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
@@ -194,11 +195,7 @@ void handle_upload_status() {
             success = false;
         }
     } else if (upload.status == UPLOAD_FILE_END) {
-#ifndef ESP32
         if (Update.end(true)) {
-#else
-        if (Update.endPacket()) {
-#endif
             #ifdef DEBUG_SERIAL
                 DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
             #endif
