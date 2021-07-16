@@ -51,6 +51,10 @@
 #define WIFI_RX_EXCELLENT 5
 #define WIFI_RX_MAX 6
 
+#ifndef FW_NAME
+    #define FW_NAME "unknown"
+#endif
+
 //Strength Wifi Signal based on https://eyesaas.com/wi-fi-signal-strength/
 const char* kWifiStrength[7] = {
     "Very Low",                //(<= -90dBm)
@@ -454,6 +458,7 @@ void handle_getJSysInfo()
     char message[512];
     snprintf(message, 512,
         "{ "
+        "\"firmware\": \"%s\", "
 #ifndef ESP32
         "\"size\": \"%s\", "
         "\"id\": \"0x%02lX 0x%04lX\", "
@@ -466,6 +471,7 @@ void handle_getJSysInfo()
         "\"logsize\": \"%u\", "
         "\"paramcrc\": \"%s\""
         " }",
+        FW_NAME,
 #ifndef ESP32
         kFlashMaps[system_get_flash_size_map()],
         (long unsigned int)(fid & 0xff), (long unsigned int)((fid & 0xff00) | ((fid >> 16) & 0xff)),
