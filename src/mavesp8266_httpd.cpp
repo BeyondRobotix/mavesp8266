@@ -36,13 +36,15 @@
  */
 #ifndef ESP32
     #include <ESP8266WebServer.h>
+#else
+    #include <Update.h>
 #endif
 #include "mavesp8266.h"
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
-#include <Update.h>
+
 
 #define WIFI_RX_VERY_LOW 0
 #define WIFI_RX_UNRELIABLE 1
