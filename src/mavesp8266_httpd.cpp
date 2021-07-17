@@ -149,11 +149,7 @@ void handle_update() {
 void handle_upload() {
     webServer.sendHeader("Connection", "close");
     webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-#ifndef ESP32
     webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? "FAIL" : "OK");
-#else
-    webServer.send(200, FPSTR(kTEXTPLAIN), "OK");
-#endif
     if(updateCB) {
         updateCB->updateCompleted();
     }
@@ -171,6 +167,9 @@ void handle_upload_status() {
     }
     HTTPUpload& upload = webServer.upload();
     if(upload.status == UPLOAD_FILE_START) {
+#ifdef ESP32 
+        digitalWrite(STATUS_LED, HIGH);
+#endif
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.setDebugOutput(true);
         #endif
@@ -183,7 +182,7 @@ void handle_upload_status() {
             DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
         #endif
         uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-        if(!Update.begin(maxSketchSpace)) {
+        if(!Update.begin(maxSketchSpace, U_FLASH)) {
             #ifdef DEBUG_SERIAL
                 Update.printError(DEBUG_SERIAL);
             #endif
@@ -197,6 +196,9 @@ void handle_upload_status() {
             success = false;
         }
     } else if (upload.status == UPLOAD_FILE_END) {
+#ifdef ESP32
+        digitalWrite(STATUS_LED, LOW);
+#endif
         if (Update.end(true)) {
             #ifdef DEBUG_SERIAL
                 DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);

@@ -138,6 +138,7 @@ void wait_for_client() {
 //---------------------------------------------------------------------------------
 //-- Reset all parameters whenever the reset gpio pin is active
 void reset_interrupt(){
+    DEBUG_LOG("Reset to factory\n");
     Parameters.resetToDefaults();
     Parameters.saveAllToEeprom();
 #ifndef ESP32
@@ -154,22 +155,26 @@ void setup() {
 #ifdef ESP32
     //downgrade CPU speed to reduce power consumption
     setCpuFrequencyMhz(160);
+    
 #endif
     delay(1000);
     Parameters.begin();
-#ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
 #ifndef ESP32
     Serial1.begin(115200);
-    //-- Initialized GPIO02 (Used for "Reset To Factory")
-    pinMode(GPIO02, INPUT_PULLUP);
-    attachInterrupt(GPIO02, reset_interrupt, FALLING);
+    
 #else
     Serial1.begin(115200, SERIAL_8N1, UART_DEBUG_RX, UART_DEBUG_TX );
 #endif
-    
+
+#ifdef ENABLE_DEBUG
+   //-- Initialized "Reset To Factory
+    pinMode(RESTORE_BTN, INPUT_PULLUP);
+    attachInterrupt(RESTORE_BTN, reset_interrupt, FALLING);
 #endif
+
+    pinMode(STATUS_LED, OUTPUT); //Used for firmware upload status
     Logger.begin(2048);
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
 

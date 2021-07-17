@@ -47,6 +47,10 @@
     #define UART_DEBUG_RX  GPIO_NUM_3
     #define UART_MAVFC_TX  GPIO_NUM_17
     #define UART_MAVFC_RX  GPIO_NUM_16
+    #define STATUS_LED     GPIO_NUM_2
+    #define RESTORE_BTN    GPIO_NUM_36
+#else
+    #define RESTORE_BTN    GPIO_NUM_2
 #endif
 #define DEFAULT_WIFI_MODE       WIFI_MODE_AP
 #define DEFAULT_UART_SPEED      921600
