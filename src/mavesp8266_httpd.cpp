@@ -72,7 +72,7 @@ const char* kWifiStrength[7] = {
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
 const char PROGMEM kTEXTHTML[]   = "text/html";
 const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
-const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVLink WiFi Bridge</a></h1><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='update'><br><input type='submit' value='Update'></form>";
+const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVLink WiFi Bridge</a></h1><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' accept='.bin' name='update'><br><label for='md5file'>Enter file checksum MD5:</label><br><input type='text' minlength='32' maxlength='32' name='md5file' value='' required><br><br><input type='submit' value='Update'></form>";
 #ifndef ENABLE_DEBUG
     const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVLink WiFi Bridge</a></h1>";
 #else
@@ -96,6 +96,7 @@ const char* kDEBUG      = "debug";
 const char* kREBOOT     = "reboot";
 const char* kPOSITION   = "position";
 const char* kMODE       = "mode";
+const char* kMD5        = "md5file";
 
 const char* kFlashMaps[7] = {
     "512KB (256/256)",
@@ -117,10 +118,7 @@ static char paramCRC[12] = {""};
 #endif
 MavESP8266Update*   updateCB    = NULL;
 bool                started     = false;
-
-
-
-
+HTTPUploadStatus    fileUploadStatus;
 //---------------------------------------------------------------------------------
 void setNoCacheHeaders() {
     webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -143,17 +141,72 @@ void handle_update() {
     webServer.sendHeader("Connection", "close");
     webServer.sendHeader(FPSTR(kACCESSCTL), "*");
     webServer.send(200, FPSTR(kTEXTHTML), FPSTR(kUPLOADFORM));
+    if(webServer.hasArg(kMD5)) {
+       DEBUG_LOG("\nMD5 update: %s\n", webServer.arg(kMD5).c_str());
+    }
+
 }
 
 //---------------------------------------------------------------------------------
 void handle_upload() {
+    bool bReboot = false;
+    char md5_str[33] = {0};
+    size_t md5_len = 0;
     webServer.sendHeader("Connection", "close");
-    webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-    webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? "FAIL" : "OK");
+    if(fileUploadStatus != UPLOAD_FILE_END){
+        DEBUG_LOG("File troncated, update canceled.\n");
+        return;
+    }
+    if(webServer.hasArg(kMD5)) {
+        strncpy(md5_str, webServer.arg(kMD5).c_str(), sizeof(md5_str));
+        md5_len = strlen(md5_str);
+        for(int8_t i = 0; i < md5_len; i++) { //to lower case
+            md5_str[i] = tolower(md5_str[i]);
+        }
+    }
+    DEBUG_LOG("\nTry to update ...\n");
+    if(md5_len > 0){
+        DEBUG_LOG("MD5 to check: %s\n", (const char*) md5_str);
+        Update.setMD5((const char*) md5_str);
+        if(Update.end(true)) {
+            DEBUG_LOG("MD5 check passsed, update success!\n");
+            bReboot = true;
+        #ifdef DEBUG_SERIAL
+                DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+            #endif  
+        }else{
+            DEBUG_LOG("Update stop : %s\n", Update.errorString());
+            if(Update.canRollBack()){
+                DEBUG_LOG("Roll back update\n");
+                Update.rollBack();
+                bReboot = true;
+            }
+        }
+        webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+        webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? Update.errorString() : "OK");
+    }else{
+        webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+        webServer.send(200, FPSTR(kTEXTPLAIN), "MD5 not provided!");
+        DEBUG_LOG("MD5 not provided!\n");
+    }
+
+    digitalWrite(STATUS_LED, LOW);
     if(updateCB) {
         updateCB->updateCompleted();
     }
-    ESP.restart();
+        
+    if(bReboot){
+        DEBUG_LOG("Reboot pending.\n");
+        uint8_t state = LOW;
+        for(int s = 5; s >= 0; s--){
+            state = (state == HIGH) ? LOW : HIGH;
+            digitalWrite(STATUS_LED, state);
+            DEBUG_LOG("..%d", s);
+            delay(1000);
+        }
+        DEBUG_LOG("\nReboot\n");
+        ESP.restart();
+    }
 }
 
 //---------------------------------------------------------------------------------
@@ -165,7 +218,9 @@ void handle_upload_status() {
             updateCB->updateStarted();
         }
     }
+    DEBUG_LOG(".");
     HTTPUpload& upload = webServer.upload();
+    fileUploadStatus = upload.status;
     if(upload.status == UPLOAD_FILE_START) {
 #ifdef ESP32 
         digitalWrite(STATUS_LED, HIGH);
@@ -195,24 +250,16 @@ void handle_upload_status() {
             #endif
             success = false;
         }
-    } else if (upload.status == UPLOAD_FILE_END) {
-#ifdef ESP32
+    // } else if (upload.status == UPLOAD_FILE_END) {
+    //     //Nothing to do 
+    } else if(upload.status == UPLOAD_FILE_ABORTED){
+        DEBUG_LOG("Upload aborded, update cancel...\n");
+        Update.abort();
+        Update.clearError();
         digitalWrite(STATUS_LED, LOW);
-#endif
-        if (Update.end(true)) {
-            #ifdef DEBUG_SERIAL
-                DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-            #endif
-        } else {
-            #ifdef DEBUG_SERIAL
-                Update.printError(DEBUG_SERIAL);
-            #endif
-            success = false;
-        }
-        #ifdef DEBUG_SERIAL
-            DEBUG_SERIAL.setDebugOutput(false);
-        #endif
+        success = false;
     }
+
     yield();
     if(!success) {
         if(updateCB) {
