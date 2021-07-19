@@ -59,7 +59,7 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
     MavESP8266Bridge::begin(forwardTo);
     //-- Start UART connected to UAS
 #ifndef ESP32
-    Serial.begin(getWorld()->getParameters()->getUartBaudRate());
+    Serial.begin(getWorld()->getParameters()->getUartBaudRate(), SERIAL_8N1, SERIAL_FULL, UART_MAVFC_TX);
 #else
     Serial.begin(getWorld()->getParameters()->getUartBaudRate(), SERIAL_8N1, UART_MAVFC_RX , UART_MAVFC_TX);
 #endif

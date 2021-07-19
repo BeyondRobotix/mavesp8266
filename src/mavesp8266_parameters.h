@@ -41,7 +41,13 @@
 #define WIFI_MODE_AP 0
 #define WIFI_MODE_STA 1
 
+#ifndef ESP32
+    #define GPIO1 GPIO_ID_PIN0+1
+    #define GPIO2 GPIO_ID_PIN0+2
+    #define GPIO3 GPIO_ID_PIN0+3
+#endif
 //-- Constants
+
 #ifdef ESP32
     #define UART_DEBUG_TX  GPIO_NUM_1
     #define UART_DEBUG_RX  GPIO_NUM_3
@@ -50,9 +56,13 @@
     #define STATUS_LED     GPIO_NUM_2
     #define RESTORE_BTN    GPIO_NUM_36
 #else
-    #define RESTORE_BTN    GPIO02
+    #define UART_DEBUG_TX  GPIO2
+    #define UART_MAVFC_TX  GPIO1
+    #define UART_MAVFC_RX  GPIO3
+    #define RESTORE_BTN    GPIO2  //only when debug is disable
     #define STATUS_LED     -1
 #endif
+
 #define DEFAULT_WIFI_MODE       WIFI_MODE_AP
 #define DEFAULT_UART_SPEED      921600
 #define DEFAULT_WIFI_CHANNEL    11

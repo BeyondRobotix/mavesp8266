@@ -47,7 +47,6 @@
 #else
     #include <ESP8266mDNS.h>
 #endif
-#define GPIO02  2
 
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
@@ -154,26 +153,24 @@ void reset_interrupt(){
 void setup() {
 #ifdef ESP32
     //downgrade CPU speed to reduce power consumption
-    setCpuFrequencyMhz(160);
-    
+    setCpuFrequencyMhz(160);  
 #endif
     delay(1000);
     Parameters.begin();
+#ifdef ENABLE_DEBUG
+    #ifndef ESP32
+        Serial1.begin(115200, SERIAL_8N1, SERIAL_TX_ONLY, GPIO2);
+    #else
+        Serial1.begin(115200, SERIAL_8N1, UART_DEBUG_RX, UART_DEBUG_TX);
+    #endif
+#else
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
-#ifndef ESP32
-    Serial1.begin(115200);
-    
-#else
-    Serial1.begin(115200, SERIAL_8N1, UART_DEBUG_RX, UART_DEBUG_TX );
-#endif
-
-#ifdef ENABLE_DEBUG
-   //-- Initialized "Reset To Factory
+    //-- Initialized "Reset To Factory
     pinMode(RESTORE_BTN, INPUT_PULLUP);
     attachInterrupt(RESTORE_BTN, reset_interrupt, FALLING);
 #endif
-
+    DEBUG_LOG("\nStart...\n");
     pinMode(STATUS_LED, OUTPUT); //Used for firmware upload status
     Logger.begin(2048);
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
