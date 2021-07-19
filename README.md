@@ -27,6 +27,7 @@ When you run ```platformio run``` for the first time, it will download the toolc
 
 * ```platformio run``` - process/build all targets
 * ```platformio run -e esp12e``` - process/build just the ESP12e target (the NodeMcu v2, Adafruit HUZZAH, etc.)
+* ```platformio run -e esp32``` - process/build just the ESP32 target ("must common" ESP32 module with 4mo flash)
 * ```platformio run -e esp12e -t upload``` - build and upload firmware to embedded board
 * ```platformio run -t clean``` - clean project (remove compiled files)
 
@@ -42,7 +43,19 @@ The ```git clone --recursive``` above not only cloned the MavESP8266 repository 
 
 User level (as well as wiring) instructions can be found [here for px4](https://docs.px4.io/en/telemetry/esp8266_wifi_module.html) and [here for ArduPilot](http://ardupilot.org/copter/docs/common-esp8266-telemetry.html)
 
-* Resetting to Defaults: In case you change the parameters and get locked out of the module, all the parameters can be reset by bringing the GPIO02 pin low (Connect GPIO02 pin to GND pin). 
+For ESP8266:
+FC (TX) -> (RX) GPIO03 (MAVESP - define by UART_MAVFC_RX in source code)
+FC (RX) <- (TX) GPIO01 (MAVESP - define by UART_MAVFC_TX in source code)
+
+For ESP32:
+FC (TX) -> (RX) GPIO16 (MAVESP - define by UART_MAVFC_RX in source code)
+FC (RX) <- (TX) GPIO17 (MAVESP - define by UART_MAVFC_TX in source code)
+
+* Important Note: to ensure a RELIABLE and SECURE Communications with your WiFi bridge device, please use UART level shifter high speed (like TXB0102 (2 wires), TXB0104 (4 wires),etc...) between your FC and ESP UARTs port if your FC work in 5v. ALL ESP DEVICES ARE NOT 5v TOLERANT, SO INOPPORTUNE BURN COULD HAPPEN AT ANY TIME!
+
+* Resetting to Defaults: In case you change the parameters and get locked out of the module, all the parameters can be reset by bringing the GPIO pin low.
+    For ESP8266: Connect GPIO02 pin to GND pin.
+    For ESP32: Connect GPIO36 pin to GND pin.
 
 ### MavLink Protocol
 
