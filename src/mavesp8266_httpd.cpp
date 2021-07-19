@@ -72,11 +72,11 @@ const char* kWifiStrength[7] = {
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
 const char PROGMEM kTEXTHTML[]   = "text/html";
 const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
-const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVLink WiFi Bridge</a></h1><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' accept='.bin' name='update'><br><label for='md5file'>Enter file checksum MD5:</label><br><input type='text' minlength='32' maxlength='32' name='md5file' value='' required><br><br><input type='submit' value='Update'></form>";
+const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVESPx2</a></h1><h2><a href='/'>MAVLink V2 WiFi Bridge</a></h2><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' accept='.bin' name='update'><br><label for='md5file'>Enter file checksum MD5:</label><br><input type='text' minlength='32' maxlength='32' name='md5file' value='' required><br><br><input type='submit' value='Update'></form>";
 #ifndef ENABLE_DEBUG
-    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVLink WiFi Bridge</a></h1>";
+    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVESPx2</a></h1><h2><a href='/'>MAVLink WiFi Bridge</a></h2>";
 #else
-    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge (DEBUG)</title></head><body><h1><a href='/'>MAVLink WiFi Bridge (DEBUG)</a></h1>";
+    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge (DEBUG)</title></head><body><h1><a href='/'>MAVESPx2 (DEBUG)</a></h1><h2><a href='/'>MAVLink WiFi Bridge</a></h2>";
 #endif
 const char PROGMEM kBADARG[]     = "BAD ARGS";
 const char PROGMEM kAPPJSON[]    = "application/json";

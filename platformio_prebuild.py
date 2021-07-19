@@ -31,13 +31,13 @@ pwlink_target = defines.get("PW_LINK")
 version_string = version_string.replace(".","_")
 #firmware_name = "mavesp-{}-{}".format(board_name, version_string)
 # set board and version in firmware name
-firmware_name = "mavesp-{}-{}-DEBUG-{}".format(board_name, version_string, rev_str)
+firmware_name = "mavespx2-{}-{}-DEBUG-{}".format(board_name, version_string, rev_str)
 
 if debug == None : 
-    firmware_name = "mavesp-{}-{}".format(board_name, version_string)
+    firmware_name = "mavespx2-{}-{}".format(board_name, version_string)
 
 if pwlink_target != None : 
-    firmware_name = "mavesp-{}-{}".format(pwlink_target, version_string)
+    firmware_name = "mavespx2-{}-{}".format(pwlink_target, version_string)
 
 build_flags[0] = build_flags[0] + " -DFW_NAME='\"{}.bin\"'".format(firmware_name)
 

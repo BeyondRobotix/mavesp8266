@@ -177,7 +177,7 @@ void setup() {
 #endif
 #endif
     DEBUG_LOG("\nStart...\n");
-    pinMode(STATUS_LED, OUTPUT); //Used for firmware upload status
+    pinMode(STATUS_LED, OUTPUT); //Used for status
     SET_STATUS_LED(LED_OFF);
     Logger.begin(2048);
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
