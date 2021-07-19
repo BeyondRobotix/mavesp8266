@@ -148,57 +148,80 @@ void handle_update() {
 }
 
 //---------------------------------------------------------------------------------
-void handle_upload() {
+void handle_upload()
+{
     bool bReboot = false;
     char md5_str[33] = {0};
     size_t md5_len = 0;
     webServer.sendHeader("Connection", "close");
-    if(fileUploadStatus != UPLOAD_FILE_END){
+    if (fileUploadStatus != UPLOAD_FILE_END)
+    {
         DEBUG_LOG("File troncated, update canceled.\n");
+#ifdef ESP32
         return;
-    }
-    if(webServer.hasArg(kMD5)) {
-        strncpy(md5_str, webServer.arg(kMD5).c_str(), sizeof(md5_str));
-        md5_len = strlen(md5_str);
-        for(int8_t i = 0; i < md5_len; i++) { //to lower case
-            md5_str[i] = tolower(md5_str[i]);
-        }
-    }
-    DEBUG_LOG("\nTry to update ...\n");
-    if(md5_len > 0){
-        DEBUG_LOG("MD5 to check: %s\n", (const char*) md5_str);
-        Update.setMD5((const char*) md5_str);
-        if(Update.end(true)) {
-            DEBUG_LOG("MD5 check passsed, update success!\n");
-            bReboot = true;
-        #ifdef DEBUG_SERIAL
-                DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-            #endif  
-        }else{
-            DEBUG_LOG("Update stop : %s\n", Update.errorString());
-            if(Update.canRollBack()){
-                DEBUG_LOG("Roll back update\n");
-                Update.rollBack();
-                bReboot = true;
+#else
+        bReboot = true; //the only (simple) way to reset current Update (to release memory allocations)
+#endif
+    }else{
+        if(webServer.hasArg(kMD5)) {
+            strncpy(md5_str, webServer.arg(kMD5).c_str(), sizeof(md5_str));
+            md5_len = strlen(md5_str);
+            for (size_t i = 0; i < md5_len; i++)
+            { //to lower case
+                md5_str[i] = tolower(md5_str[i]);
             }
         }
-        webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-        webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? Update.errorString() : "OK");
-    }else{
-        webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-        webServer.send(200, FPSTR(kTEXTPLAIN), "MD5 not provided!");
-        DEBUG_LOG("MD5 not provided!\n");
+        DEBUG_LOG("\nTry to update ...\n");
+        if(md5_len > 0){
+            DEBUG_LOG("MD5 to check: %s\n", (const char *)md5_str);
+            Update.setMD5((const char *)md5_str);
+            if (Update.end(true))
+            {
+                DEBUG_LOG("MD5 check passsed, update success!\n");
+                bReboot = true;
+#ifdef DEBUG_SERIAL
+                DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+#endif
+            }
+            else
+            {
+#ifdef ESP32
+                DEBUG_LOG("Update stop : %s\n", Update.errorString());
+                if (Update.canRollBack())
+                {
+                    DEBUG_LOG("Roll back update\n");
+                    Update.rollBack();
+                    bReboot = true;
+                }
+#else
+                DEBUG_LOG("Update stop at the MD5 check\n");
+#endif
+            }
+            webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+#ifdef ESP32
+            webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? Update.errorString() : "OK");
+#else
+            webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? "FAIL" : "OK");
+#endif
+        }else{
+            webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+            webServer.send(200, FPSTR(kTEXTPLAIN), "MD5 not provided!");
+            DEBUG_LOG("MD5 not provided!\n");
+        }
     }
 
     digitalWrite(STATUS_LED, LOW);
-    if(updateCB) {
+    if (updateCB)
+    {
         updateCB->updateCompleted();
     }
-        
-    if(bReboot){
+
+    if (bReboot)
+    {
         DEBUG_LOG("Reboot pending.\n");
         uint8_t state = LOW;
-        for(int s = 5; s >= 0; s--){
+        for (int s = 5; s >= 0; s--)
+        {
             state = (state == HIGH) ? LOW : HIGH;
             digitalWrite(STATUS_LED, state);
             DEBUG_LOG("..%d", s);
@@ -254,7 +277,9 @@ void handle_upload_status() {
     //     //Nothing to do 
     } else if(upload.status == UPLOAD_FILE_ABORTED){
         DEBUG_LOG("Upload aborded, update cancel...\n");
+#ifdef ESP32
         Update.abort();
+#endif
         Update.clearError();
         digitalWrite(STATUS_LED, LOW);
         success = false;

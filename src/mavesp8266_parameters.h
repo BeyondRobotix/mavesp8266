@@ -50,7 +50,8 @@
     #define STATUS_LED     GPIO_NUM_2
     #define RESTORE_BTN    GPIO_NUM_36
 #else
-    #define RESTORE_BTN    GPIO_NUM_2
+    #define RESTORE_BTN    GPIO02
+    #define STATUS_LED     -1
 #endif
 #define DEFAULT_WIFI_MODE       WIFI_MODE_AP
 #define DEFAULT_UART_SPEED      921600
