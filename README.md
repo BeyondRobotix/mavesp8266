@@ -28,10 +28,13 @@ When you run ```platformio run``` for the first time, it will download the toolc
 * ```platformio run``` - process/build all targets
 * ```platformio run -e esp12e``` - process/build just the ESP12e target (the NodeMcu v2, Adafruit HUZZAH, etc.)
 * ```platformio run -e esp32``` - process/build just the ESP32 target ("must common" ESP32 module with 4mo flash)
+* ```platformio run -e pw_link``` - process/build just the CUAV PW_LINK target (based on ESP8622EX with 4mo flash)
 * ```platformio run -e esp12e -t upload``` - build and upload firmware to embedded board
 * ```platformio run -t clean``` - clean project (remove compiled files)
 
-The resulting image(s) can be found in the directory ```.pioenvs``` created during the build process.
+
+The resulting image(s) can be found in the directory ```.pio\build\[target]``` created during the build process.
+
 
 ### MavLink Submodule
 
