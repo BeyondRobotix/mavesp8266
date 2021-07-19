@@ -209,8 +209,8 @@ void handle_upload()
             DEBUG_LOG("MD5 not provided!\n");
         }
     }
+    SET_STATUS_LED(LED_OFF);
 
-    digitalWrite(STATUS_LED, LOW);
     if (updateCB)
     {
         updateCB->updateCompleted();
@@ -219,13 +219,16 @@ void handle_upload()
     if (bReboot)
     {
         DEBUG_LOG("Reboot pending.\n");
-        uint8_t state = LOW;
+        uint8_t state = LED_OFF;
         for (int s = 5; s >= 0; s--)
         {
-            state = (state == HIGH) ? LOW : HIGH;
-            digitalWrite(STATUS_LED, state);
+            state = (state == LED_ON) ? LED_OFF : LED_ON;
+            SET_STATUS_LED(state);
+            delay(500);
+            state = (state == LED_ON) ? LED_OFF : LED_ON;
+            SET_STATUS_LED(state);
             DEBUG_LOG("..%d", s);
-            delay(1000);
+            delay(500);
         }
         DEBUG_LOG("\nReboot\n");
         ESP.restart();
@@ -245,9 +248,7 @@ void handle_upload_status() {
     HTTPUpload& upload = webServer.upload();
     fileUploadStatus = upload.status;
     if(upload.status == UPLOAD_FILE_START) {
-#ifdef ESP32 
-        digitalWrite(STATUS_LED, HIGH);
-#endif
+        SET_STATUS_LED(LED_ON);
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.setDebugOutput(true);
         #endif
@@ -281,7 +282,7 @@ void handle_upload_status() {
         Update.abort();
 #endif
         Update.clearError();
-        digitalWrite(STATUS_LED, LOW);
+        SET_STATUS_LED(LED_OFF);
         success = false;
     }
 

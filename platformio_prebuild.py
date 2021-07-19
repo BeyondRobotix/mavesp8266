@@ -25,6 +25,7 @@ my_flags = env.ParseFlags(env['BUILD_FLAGS'])
 defines = {k: v for (k, v) in my_flags.get("CPPDEFINES")}
 version_string = defines.get("VERSION_STRING")  # e.g. "1.2.2"
 debug = defines.get("ENABLE_DEBUG")
+pwlink_target = defines.get("PW_LINK")
 
 # replace dots in version if linker can't find the path
 version_string = version_string.replace(".","_")
@@ -34,6 +35,9 @@ firmware_name = "mavesp-{}-{}-DEBUG-{}".format(board_name, version_string, rev_s
 
 if debug == None : 
     firmware_name = "mavesp-{}-{}".format(board_name, version_string)
+
+if pwlink_target != None : 
+    firmware_name = "mavesp-{}-{}".format(pwlink_target, version_string)
 
 build_flags[0] = build_flags[0] + " -DFW_NAME='\"{}.bin\"'".format(firmware_name)
 

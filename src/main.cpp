@@ -108,6 +108,7 @@ MavESP8266World* getWorld()
 //-- Wait for a DHCPD client
 void wait_for_client() {
     DEBUG_LOG("Waiting for a client...\n");
+    uint8_t state = LED_OFF;
 #ifdef ENABLE_DEBUG
     int wcount = 0;
 #endif
@@ -117,6 +118,8 @@ void wait_for_client() {
     uint8_t client_count = wifi_softap_get_station_num();
 #endif
     while (!client_count) {
+        state = (state == LED_ON) ? LED_OFF : LED_ON;
+        SET_STATUS_LED(state);
 #ifdef ENABLE_DEBUG
         Serial1.print(".");
         if(++wcount > 80) {
@@ -131,6 +134,7 @@ void wait_for_client() {
         client_count = wifi_softap_get_station_num();
 #endif
     }
+    SET_STATUS_LED(LED_OFF);
     DEBUG_LOG("Got %d client(s)\n", client_count);
 }
 
@@ -164,14 +168,17 @@ void setup() {
         Serial1.begin(115200, SERIAL_8N1, UART_DEBUG_RX, UART_DEBUG_TX);
     #endif
 #else
+#ifndef PW_LINK
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
     //-- Initialized "Reset To Factory
     pinMode(RESTORE_BTN, INPUT_PULLUP);
     attachInterrupt(RESTORE_BTN, reset_interrupt, FALLING);
 #endif
+#endif
     DEBUG_LOG("\nStart...\n");
     pinMode(STATUS_LED, OUTPUT); //Used for firmware upload status
+    SET_STATUS_LED(LED_OFF);
     Logger.begin(2048);
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
 
