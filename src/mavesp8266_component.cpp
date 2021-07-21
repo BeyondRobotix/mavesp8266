@@ -149,9 +149,6 @@ MavESP8266Component::_sendStatusMessage(MavESP8266Bridge* sender, uint8_t type, 
     sender->sendMessage(&msg);
 }
 
-
-
-
 //---------------------------------------------------------------------------------
 //-- Set parameter
 void
@@ -325,4 +322,13 @@ MavESP8266Component::_wifiReboot(MavESP8266Bridge* sender)
 #else
     ESP.restart();
 #endif
+}
+
+
+//---------------------------------------------------------------------------------
+//-- Send notice msg to ground station
+void
+MavESP8266Component::sendMsgToGCS(const char* text)
+{
+    _sendStatusMessage((MavESP8266Bridge*) getWorld()->getGCS(), MAV_SEVERITY_NOTICE, text);
 }

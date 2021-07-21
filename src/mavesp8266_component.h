@@ -48,6 +48,7 @@ public:
     bool handleMessage        (MavESP8266Bridge* sender, mavlink_message_t* message);
     bool inRawMode            ();
     void resetRawMode         () { _in_raw_mode_time = millis(); }
+    void sendMsgToGCS         (const char* text);
 
 private:
     void    _sendStatusMessage      (MavESP8266Bridge* sender, uint8_t type, const char* text);
