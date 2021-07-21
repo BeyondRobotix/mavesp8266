@@ -61,6 +61,7 @@ MavESP8266GCS::begin(MavESP8266Bridge* forwardTo, IPAddress gcsIP)
     _udp_port = getWorld()->getParameters()->getWifiUdpHport();
     //-- Start UDP
     _udp.begin(getWorld()->getParameters()->getWifiUdpCport());
+    _connected = false;
 }
 
 //---------------------------------------------------------------------------------
@@ -115,6 +116,7 @@ MavESP8266GCS::_readMessage()
                     //-- First packets
                     if(!_heard_from) {
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+                            _connected = true;
                             //-- We no longer need DHCP
                             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
 #ifndef ESP32
@@ -160,6 +162,7 @@ MavESP8266GCS::_readMessage()
     }
     if(!bMsgReceived) {
         if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
+
             //-- Restart DHCP and start broadcasting again
             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
 #ifndef ESP32
@@ -169,6 +172,7 @@ MavESP8266GCS::_readMessage()
 #endif
             }
             _heard_from = false;
+            _connected = false;
             _ip[3] = 255;
             getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
         }
@@ -249,7 +253,13 @@ MavESP8266GCS::sendMessageRaw(uint8_t *buffer, int len) {
     //_udp.flush();
     return sent;
 }
-
+//---------------------------------------------------------------------------------
+//-- return GCS connected status
+bool MavESP8266GCS::isConnected(bool bResetState){
+    bool bCurrent = _connected;
+    _connected = (bResetState)? false : _connected;
+    return bCurrent;
+}
 //---------------------------------------------------------------------------------
 //-- Send Radio Status
 void
@@ -318,3 +328,4 @@ MavESP8266GCS::_sendSingleUdpMessage(mavlink_message_t* msg)
     }
     _status.packets_sent++;
 }
+

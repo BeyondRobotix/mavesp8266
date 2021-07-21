@@ -49,7 +49,8 @@ public:
     void    readMessageRaw          ();
     int     sendMessage             (mavlink_message_t* message, int count);
     int     sendMessage             (mavlink_message_t* message);
-    int     sendMessageRaw           (uint8_t *buffer, int len);
+    int     sendMessageRaw          (uint8_t *buffer, int len);
+    bool    isConnected             (bool bResetState = false);
 protected:
     void    _sendRadioStatus        ();
 
@@ -64,6 +65,7 @@ private:
     uint16_t            _udp_port;
     mavlink_message_t   _message;
     unsigned long       _last_status_time;
+    bool                _connected;
 };
 
 #endif
