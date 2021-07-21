@@ -41,6 +41,7 @@
 #endif
 #include "mavesp8266.h"
 #include "mavesp8266_httpd.h"
+#include "mavesp8266_component.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
@@ -97,6 +98,9 @@ const char* kREBOOT     = "reboot";
 const char* kPOSITION   = "position";
 const char* kMODE       = "mode";
 const char* kMD5        = "md5file";
+const char* kMSG2GCS    = "msg2gcs";
+
+const int   kMSG2GSM_MAX_LEN = 50;
 
 const char* kFlashMaps[7] = {
     "512KB (256/256)",
@@ -218,20 +222,7 @@ void handle_upload()
 
     if (bReboot)
     {
-        DEBUG_LOG("Reboot pending.\n");
-        uint8_t state = LED_OFF;
-        for (int s = 5; s >= 0; s--)
-        {
-            state = (state == LED_ON) ? LED_OFF : LED_ON;
-            SET_STATUS_LED(state);
-            delay(500);
-            state = (state == LED_ON) ? LED_OFF : LED_ON;
-            SET_STATUS_LED(state);
-            DEBUG_LOG("..%d", s);
-            delay(500);
-        }
-        DEBUG_LOG("\nReboot\n");
-        ESP.restart();
+        getWorld()->getComponent()->rebootDevice();
     }
 }
 
@@ -332,13 +323,57 @@ static void handle_root()
     message += "<li><a href='/getstatus'>Get Status</a>\n";
     message += "<li><a href='/setup'>Setup</a>\n";
     message += "<li><a href='/getparameters'>Get Parameters</a>\n";
+    message += "<li><a href='/message'>Send message to pilot</a>\n";
     message += "<li><a href='/update'>Update Firmware</a>\n";
     message += "<li><a href='/reboot'>Reboot</a>\n";
     message += "</ul></body>";
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
 }
+//---------------------------------------------------------------------------------
+static void provide_page_message(int send_status = -1)
+{
+    String message = FPSTR(kHEADER);
+    message += "<h3>Message for ground station</h3>\n";
+    
+    message += "<form action='/send_msg' method='post'>\n";
+    message += "<input type='text' name='";
+    message += kMSG2GCS;
+    message += "' minlength='1' maxlength='";
+    message += kMSG2GSM_MAX_LEN;
+    message += "' value='' required><br>";
+    message += "<br>";
+    message += "<input type='submit' value='Send'><br>";
+    if(send_status > 0){
+        message += "Last message sent!&nbsp;<br>";
+    }else if (send_status == 0){
+        message += "Last message NOT sent!&nbsp;<br>";
+    }
+    message += "</form>";
+    setNoCacheHeaders();
+    webServer.send(200, FPSTR(kTEXTHTML), message);
+}
+//---------------------------------------------------------------------------------
+static void handle_message()
+{
+    provide_page_message();
+}
+//---------------------------------------------------------------------------------
 
+static void handle_send_msg(){
+    int send_status = 0;
+    if(webServer.args() == 0) {
+        returnFail(kBADARG);
+        return;
+    }
+    if(webServer.hasArg(kMSG2GCS)) {
+        if((webServer.arg(kMSG2GCS).length() <= kMSG2GSM_MAX_LEN ) 
+            && getWorld()->getGCS()->isConnected()){
+            send_status = getWorld()->getComponent()->sendMsgToGCS(webServer.arg(kMSG2GCS).c_str());
+        }
+    }
+    provide_page_message(send_status);
+}
 //---------------------------------------------------------------------------------
 static void handle_setup()
 {
@@ -505,10 +540,10 @@ void handle_getJLog()
     }
     String logText = getWorld()->getLogger()->getLog(&position, &len);
     char jStart[128];
-    snprintf(jStart, 128, "{\"len\":%d, \"start\":%d, \"text\": \"", len, position);
+    snprintf(jStart, 128, "{\"len\":%d, \"start\":%d, \"logs\": [", len, position);
     String payLoad = jStart;
     payLoad += logText;
-    payLoad += "\"}";
+    payLoad += "]}";
     webServer.send(200, FPSTR(kAPPJSON), payLoad);
 }
 
@@ -672,7 +707,7 @@ void handle_setParameters()
         handle_getParameters();
         if(reboot) {
             delay(100);
-            ESP.restart();
+            getWorld()->getComponent()->rebootDevice();
         }
     } else
         returnFail(kBADARG);
@@ -686,7 +721,7 @@ static void handle_reboot()
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
     delay(500);
-    ESP.restart();    
+    getWorld()->getComponent()->rebootDevice();   
 }
 
 //---------------------------------------------------------------------------------
@@ -719,6 +754,8 @@ MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
 {
     updateCB = updateCB_;
     webServer.on("/",               handle_root);
+    webServer.on("/message",        handle_message);
+    webServer.on("/send_msg",       handle_send_msg);
     webServer.on("/getparameters",  handle_getParameters);
     webServer.on("/setparameters",  handle_setParameters);
     webServer.on("/getstatus",      handle_getStatus);
