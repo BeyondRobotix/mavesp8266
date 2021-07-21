@@ -48,6 +48,7 @@
     #include <ESP8266mDNS.h>
 #endif
 
+
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
 class MavESP8266UpdateImp : public MavESP8266Update {
@@ -73,8 +74,6 @@ public:
 private:
     bool _isUpdating;
 };
-
-
 
 //-- Singletons
 IPAddress               localIP;
@@ -105,6 +104,76 @@ MavESP8266World* getWorld()
 }
 
 //---------------------------------------------------------------------------------
+//-- Reset all parameters whenever the reset gpio pin is active
+void reset_params(){
+    DEBUG_LOG("Reset parameters to factory\n");
+    Parameters.resetToDefaults();
+    Parameters.saveAllToEeprom();
+#ifndef ESP32
+    ESP.reset();
+#else
+    delay(200); // to be sure of the Eeprom end to write 
+    ESP.restart();
+#endif
+}
+
+void reboot(){
+#ifndef ESP32
+    ESP.reset();
+#else
+    delay(200); // to be sure of the Eeprom end to write 
+    ESP.restart();
+#endif
+}
+
+// count the number of user presses on button to trig actions to do
+enum {
+        ACTION_TEST=2,
+        ACTION_REBOOT,
+        ACTION_RESET_PARAM,
+        ACTION_RESET_FACTORY,
+        ACTION_COUNT,
+};
+
+volatile uint8_t action_req = 0;
+volatile unsigned long first_press = 0;
+volatile unsigned long last_press = 0;
+
+void resetAction() {
+    first_press = 0;
+    last_press = 0;
+    action_req = 0;
+}
+
+uint8_t getActionToDo() {
+    uint8_t uAction = 0;
+    if ((action_req > 0) && (millis() - last_press > 2000)){
+        uAction = action_req;
+        resetAction();
+    }
+    return uAction;
+}
+
+void doPendingAction(){
+    switch(getActionToDo()){
+        case ACTION_TEST:
+            DEBUG_LOG("TEST REQ\n");
+            break;
+        case ACTION_REBOOT:
+            DEBUG_LOG("REBOOT REQ\n");
+            reboot();
+            break;
+        case ACTION_RESET_PARAM:
+            DEBUG_LOG("RESET PARAM REQ\n");
+            reset_params();
+            break;
+        case ACTION_RESET_FACTORY:
+            DEBUG_LOG("RESET FACTORY REQ\n");
+            reset_params();
+            break;
+    };
+}
+//---------------------------------------------------------------------------------
 //-- Wait for a DHCPD client
 void wait_for_client() {
     DEBUG_LOG("Waiting for a client...\n");
@@ -118,6 +187,7 @@ void wait_for_client() {
     uint8_t client_count = wifi_softap_get_station_num();
 #endif
     while (!client_count) {
+        doPendingAction();
         state = (state == LED_ON) ? LED_OFF : LED_ON;
         SET_STATUS_LED(state);
 #ifdef ENABLE_DEBUG
@@ -135,21 +205,28 @@ void wait_for_client() {
 #endif
     }
     SET_STATUS_LED(LED_OFF);
-    DEBUG_LOG("Got %d client(s)\n", client_count);
+    DEBUG_LOG("\nGot %d client(s)\n", client_count);
 }
 
-//---------------------------------------------------------------------------------
-//-- Reset all parameters whenever the reset gpio pin is active
-void reset_interrupt(){
-    DEBUG_LOG("Reset to factory\n");
-    Parameters.resetToDefaults();
-    Parameters.saveAllToEeprom();
-#ifndef ESP32
-    ESP.reset();
-#else
-    delay(200); // to be sure of the Eeprom end to write 
-    ESP.restart();
-#endif
+// count the number of user presses on button to trig actions to do
+void catch_interrupts() {
+    unsigned long t = millis();
+    unsigned long Pt = (last_press > 0)? abs(t - last_press) : 0;
+    last_press = t;
+    if (t - first_press > 5000) { 
+        resetAction(); //cancel request if period from first press > 5s
+    }
+    if (first_press == 0 ) { 
+        first_press = t; //get start time on first interupt
+    }
+    if (((200 <= Pt) && (Pt <= 1000)) || (last_press == 0)) { //soft passband filter to enable counter increment and avoid wrong pulse (rebound or noise)
+        if(action_req >= ACTION_COUNT){
+            action_req = ACTION_COUNT;  //To do nothing if not stop at the correct pulse count
+        }else{
+            action_req++; 
+        }
+        DEBUG_LOG("\nAction id %u | first press: %u | last press: %u | Pulse interval: %u\n", action_req, first_press, last_press, Pt);
+    }
 }
 
 //---------------------------------------------------------------------------------
@@ -166,14 +243,16 @@ void setup() {
         Serial1.begin(115200, SERIAL_8N1, SERIAL_TX_ONLY, GPIO2);
     #else
         Serial1.begin(115200, SERIAL_8N1, UART_DEBUG_RX, UART_DEBUG_TX);
+        pinMode(RESTORE_BTN, INPUT_PULLUP);
+        attachInterrupt(RESTORE_BTN, catch_interrupts, FALLING);
     #endif
 #else
 #ifndef PW_LINK
-    //   We only use it for non debug because GPIO02 is used as a serial
+    //   for ESP8266 we only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
     //-- Initialized "Reset To Factory
     pinMode(RESTORE_BTN, INPUT_PULLUP);
-    attachInterrupt(RESTORE_BTN, reset_interrupt, FALLING);
+    attachInterrupt(RESTORE_BTN, catch_interrupts, FALLING);
 #endif
 #endif
     DEBUG_LOG("\nStart...\n");
@@ -255,6 +334,7 @@ void setup() {
 //-- Main Loop
 void loop() {
     if(!updateStatus.isUpdating()) {
+        doPendingAction();
         if (Component.inRawMode()) {
             GCS.readMessageRaw();
             delay(0);
