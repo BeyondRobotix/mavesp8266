@@ -211,7 +211,7 @@ void wait_for_client() {
 // count the number of user presses on button to trig actions to do
 void catch_interrupts() {
     unsigned long t = millis();
-    unsigned long Pt = (last_press > 0)? abs(t - last_press) : 0;
+    unsigned long Pt = (last_press > 0)? t - last_press : 0;
     last_press = t;
     if (t - first_press > 5000) { 
         resetAction(); //cancel request if period from first press > 5s
