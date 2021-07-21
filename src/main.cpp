@@ -149,12 +149,12 @@ uint8_t getActionToDo() {
     uint8_t uAction = 0;
     if ((action_req > 0) && (millis() - last_press > 2000)){
         uAction = action_req;
-        resetAction();
     }
     return uAction;
 }
 
 void doPendingAction(){
+    resetAction();
     switch(getActionToDo()){
         case ACTION_TEST:
             DEBUG_LOG("TEST REQ\n");
@@ -339,7 +339,6 @@ void loop() {
             GCS.readMessageRaw();
             delay(0);
             Vehicle.readMessageRaw();
-
         } else {
             GCS.readMessage();
             delay(0);
