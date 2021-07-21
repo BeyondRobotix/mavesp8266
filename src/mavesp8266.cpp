@@ -105,25 +105,49 @@ size_t
 MavESP8266Log::log(const char *format, ...) {
     va_list arg;
     va_start(arg, format);
-    char temp[1024];
+    char temp[1021] = {0};
+    char json[1024] = {0};
 #ifndef ESP32
-    size_t len = ets_vsnprintf(temp, 1024, format, arg);
+    size_t len = ets_vsnprintf(temp, 1021, format, arg);
 #else
-    size_t len = vsnprintf(temp, 1024, format, arg);
+    size_t len = vsnprintf(temp, 1021, format, arg);
 #endif
 #ifdef ENABLE_DEBUG
     Serial1.print(temp);
 #endif
-
+    if(len == 0){
+        return len;
+    }
+    if(_log_position > 0){
+        len = snprintf(json, 1024, ",\"%s\"", temp);
+    }else{
+        len = snprintf(json, 1024, "\"%s\"", temp);
+    }
     if(_buffer) {
         for(int i = 0; i < (int)len; i++) {
-            _buffer[_log_offset] = temp[i];
+            _buffer[_log_offset] = json[i];
             _log_offset = (_log_offset + 1) % _buffer_size;
             _log_position++;
         }
     }
     va_end(arg);
     return len;
+}
+//---------------------------------------------------------------------------------
+void
+MavESP8266Log::print(const char *format, ...) {
+#ifdef ENABLE_DEBUG
+    va_list arg;
+    va_start(arg, format);
+    char temp[1021] = {0};
+#ifndef ESP32
+    size_t len = ets_vsnprintf(temp, 1021, format, arg);
+#else
+    size_t len = vsnprintf(temp, 1021, format, arg);
+#endif
+    Serial1.print(temp);
+    va_end(arg);
+#endif
 }
 
 //---------------------------------------------------------------------------------
@@ -145,7 +169,9 @@ MavESP8266Log::getLog(uint32_t* pStart, uint32_t* pLen) {
     while(len > 0) {
         char c = _buffer[r];
         //-- Copy as JSON encoded characters
-        if (c == '\\' || c == '"') {
+        if ((c == '\n') || (c == '\r'))  {
+            //filter newline and caret return;
+        }else if (c == '\\') {
             buffer += '\\';
             buffer += c;
         } else if (c < ' ') {

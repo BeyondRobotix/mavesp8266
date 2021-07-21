@@ -87,8 +87,10 @@ class MavESP8266GCS;
 //#define ENABLE_DEBUG
 
 #ifdef ENABLE_DEBUG
-#define DEBUG_LOG(format, ...) do { getWorld()->getLogger()->log(format, ## __VA_ARGS__); } while(0)
+#define DEBUG_PRINT(format,...) do { getWorld()->getLogger()->print(format, ## __VA_ARGS__); } while(0)
+#define DEBUG_LOG(format,...) do { getWorld()->getLogger()->log(format, ## __VA_ARGS__); } while(0)
 #else
+#define DEBUG_PRINT(format,...) do { } while(0)
 #define DEBUG_LOG(format, ...) do { } while(0)
 #endif
 
@@ -144,6 +146,7 @@ public:
     MavESP8266Log   ();
     void            begin           (size_t bufferSize); // Allocate a buffer for the log
     size_t          log             (const char *format, ...); // Add to the log
+    void          print           (const char *format, ...); // only print on serial
     String          getLog          (uint32_t* pStart, uint32_t* pLen); // Get the log starting at a position
     uint32_t        getLogSize      (); // Number of bytes available at the current log position
     uint32_t        getPosition     ();
