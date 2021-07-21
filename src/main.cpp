@@ -109,21 +109,8 @@ void reset_params(){
     DEBUG_LOG("Reset parameters to factory\n");
     Parameters.resetToDefaults();
     Parameters.saveAllToEeprom();
-#ifndef ESP32
-    ESP.reset();
-#else
     delay(200); // to be sure of the Eeprom end to write 
-    ESP.restart();
-#endif
-}
-
-void reboot(){
-#ifndef ESP32
-    ESP.reset();
-#else
-    delay(200); // to be sure of the Eeprom end to write 
-    ESP.restart();
-#endif
+    Component.rebootDevice();
 }
 
 // count the number of user presses on button to trig actions to do
@@ -149,19 +136,19 @@ uint8_t getActionToDo() {
     uint8_t uAction = 0;
     if ((action_req > 0) && (millis() - last_press > 2000)){
         uAction = action_req;
+        resetAction();
     }
     return uAction;
 }
 
 void doPendingAction(){
-    resetAction();
     switch(getActionToDo()){
         case ACTION_TEST:
             DEBUG_LOG("TEST REQ\n");
             break;
         case ACTION_REBOOT:
             DEBUG_LOG("REBOOT REQ\n");
-            reboot();
+            Component.rebootDevice();
             break;
         case ACTION_RESET_PARAM:
             DEBUG_LOG("RESET PARAM REQ\n");
@@ -191,10 +178,10 @@ void wait_for_client() {
         state = (state == LED_ON) ? LED_OFF : LED_ON;
         SET_STATUS_LED(state);
 #ifdef ENABLE_DEBUG
-        Serial1.print(".");
+        DEBUG_PRINT(".");
         if(++wcount > 80) {
             wcount = 0;
-            Serial1.println();
+            DEBUG_PRINT("\n");
         }
 #endif
         delay(1000);
@@ -334,6 +321,11 @@ void setup() {
 //-- Main Loop
 void loop() {
     if(!updateStatus.isUpdating()) {
+#ifdef ENABLE_DEBUG
+        if(GCS.isConnected(true)){
+            DEBUG_LOG("GCS Connected!\n");
+        }
+#endif
         doPendingAction();
         if (Component.inRawMode()) {
             GCS.readMessageRaw();
