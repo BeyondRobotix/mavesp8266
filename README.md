@@ -58,7 +58,7 @@ FC (RX) <- (TX) GPIO17 (MAVESP - define by UART_MAVFC_TX in source code)
 
 * Resetting to Defaults: In case you change the parameters and get locked out of the module, all the parameters can be reset by bringing the GPIO pin low.
     For ESP8266: Connect GPIO02 pin to GND pin.
-    For ESP32: Connect GPIO36 pin to GND pin.
+    For ESP32: Connect GPIO22 pin to GND pin.
 
 ### MavLink Protocol
 

@@ -56,7 +56,7 @@
     #define UART_MAVFC_TX  GPIO_NUM_17
     #define UART_MAVFC_RX  GPIO_NUM_16
     #define STATUS_LED     GPIO_NUM_2
-    #define RESTORE_BTN    GPIO_NUM_36
+    #define RESTORE_BTN    GPIO_NUM_22
     #define LED_ON         HIGH
     #define LED_OFF        LOW
 #else
