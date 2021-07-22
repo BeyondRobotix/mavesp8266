@@ -321,11 +321,6 @@ void setup() {
 //-- Main Loop
 void loop() {
     if(!updateStatus.isUpdating()) {
-#ifdef ENABLE_DEBUG
-        if(GCS.isConnected(true)){
-            DEBUG_LOG("GCS Connected!\n");
-        }
-#endif
         doPendingAction();
         if (Component.inRawMode()) {
             GCS.readMessageRaw();

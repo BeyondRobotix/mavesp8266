@@ -141,9 +141,9 @@ MavESP8266Log::print(const char *format, ...) {
     va_start(arg, format);
     char temp[1021] = {0};
 #ifndef ESP32
-    size_t len = ets_vsnprintf(temp, 1021, format, arg);
+    ets_vsnprintf(temp, 1021, format, arg);
 #else
-    size_t len = vsnprintf(temp, 1021, format, arg);
+    vsnprintf(temp, 1021, format, arg);
 #endif
     Serial1.print(temp);
     va_end(arg);

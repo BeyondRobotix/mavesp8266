@@ -50,7 +50,7 @@ public:
     int     sendMessage             (mavlink_message_t* message, int count);
     int     sendMessage             (mavlink_message_t* message);
     int     sendMessageRaw          (uint8_t *buffer, int len);
-    bool    isConnected             (bool bResetState = false);
+    bool    isConnected             ();
 protected:
     void    _sendRadioStatus        ();
 

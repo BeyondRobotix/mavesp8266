@@ -255,10 +255,8 @@ MavESP8266GCS::sendMessageRaw(uint8_t *buffer, int len) {
 }
 //---------------------------------------------------------------------------------
 //-- return GCS connected status
-bool MavESP8266GCS::isConnected(bool bResetState){
-    bool bCurrent = _connected;
-    _connected = (bResetState)? false : _connected;
-    return bCurrent;
+bool MavESP8266GCS::isConnected(){
+    return _connected;
 }
 //---------------------------------------------------------------------------------
 //-- Send Radio Status
