@@ -11,7 +11,7 @@ Important Note : Please pay attention to select the correct firmware for your de
  * mavespx2-esp12e-x_x_x.bin : for board based on module ESP8266 with 4mb Flash (80k ram), the major part of the market.
  * mavespx2-pw_link-x_x_x.bin : only for CUAV pw_link board (based on ESP8266EX chip).
  * mavespx2-esp32dev-x_x_x.zip : for board based on module ESP32 with 4mb Flash (zip file including partition file and firmware).
- * mavespx2-wemos_d1_mini32-1_0_0.zip : for D1 board based on module ESP32 with 4mb Flash (zip file including partition file and firmware).
+ * mavespx2-wemos_d1_mini32-x_x_x.zip : for D1 board based on module ESP32 with 4mb Flash (zip file including partition file and firmware).
 
 
 ## WiFi Access Point and MavLink Bridge
