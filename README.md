@@ -70,19 +70,19 @@ This feature is availlable for esp32 and PW_LINK with builtin led (GPIO02 is use
 For others boards you can add led on a availlabe GPIO but you need set this GPIO in source code and rebuild the firmware (or tell me ^^ ).
 
 Meaning:
-blink at 1hz : On start, waiting wifi client. 
-Stay on : update in progress.
-Blink at 2hz : reboot imminant.
+* blink at 1hz : On start, waiting wifi client. 
+* Stay on : update in progress.
+* Blink at 2hz : reboot imminant.
 
 ### Actions on button
 
 This feature is availlable for all board (except PW_LINK) with free GPIO (default GPIO : ref to wiring). 
 Just Plug a button to GPIO pin and GND pin.
 
-2 pushs : test (for debug, do nothing).
-3 pushs : request reboot.
-4 pushs : request restore default parameters.
-5 pushs : request factory reset.
+* 2 pushs : test (for debug, do nothing).
+* 3 pushs : request reboot.
+* 4 pushs : request restore default parameters.
+* 5 pushs : request factory reset.
 
 > 5 pushs : reset button action after 2s.
 
