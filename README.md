@@ -1,22 +1,23 @@
-# MavESP8266
+# MavEspx2
 
 ## Current Binary
 
-Download the current version (MAVLink V2) from here: [Firmware version 1.2.2](http://www.grubba.com/mavesp8266/firmware-1.2.2.bin)
+Download the current version (MAVLink V2) from here: [Firmware version 1.0.0]
 
-Download the legacy version (MAVLink V1) from here: [Firmware version 1.1.1](http://www.grubba.com/mavesp8266/firmware-1.1.1.bin)
+Download the legacy version (MAVLink V2) from here: [Firmware version 1.2.2](http://www.grubba.com/mavesp8266/firmware-1.2.2.bin)
 
-## ESP8266 WiFi Access Point and MavLink Bridge
+## WiFi Access Point and MavLink Bridge
 
-[![Join the chat at https://gitter.im/dogmaphobic/mavesp8266](https://badges.gitter.im/dogmaphobic/mavesp8266.svg)](https://gitter.im/dogmaphobic/mavesp8266?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+This is a fork of MAVEPS8266 of "dogmaphobic" port to ESP32 using a two [MINI D1 ESP32](https://www.az-delivery.de/fr/products/esp32-d1-mini) for debugging and test (on ground and on air mounted on Hexa with PIXHACK V3 (Arducopter V4.0.3)). Even though the ESP32 port showed better efficiency than the ESP8266, I decided to keep the ESP8266 code working, and finally I'm improving all of them.
 
-This was developed using a [NodeMCU v2 Dev Kit](http://www.seeedstudio.com/depot/NodeMCU-v2-Lua-based-ESP8266-development-kit-p-2415.html) as it conveniently provides a secondary UART for debugging. It has been tested with the ESP-01 shipped with the [PixRacer](https://pixhawk.org/modules/pixracer) and it is stable at 921600 baud.
+For now I'don't have ESP8266 module (NodeMCU like) so I use [PW_LINK](http://doc.cuav.net/data-transmission/pw-link/en/) to test.
+On this PW_LINK all it's working fine but I don't know why, I don't want boot at the first power-on, I need to unplug dc and replug it...(I'll have to get out my old cathode ray oscilloscope ^^ ).
 
-The build enviroment is based on [PlatformIO](http://platformio.org). Follow the instructions found here: http://platformio.org/#!/get-started (only tested on Mac OS) for installing it but skip the ```platform init``` step as this has already been done, modified and it is included in this repository. In summary:
+The build enviroment is based on [PlatformIO](http://platformio.org). Follow the instructions found here: http://platformio.org/#!/get-started (only tested on Windows 10) for installing it but skip the ```platform init``` step as this has already been done, modified and it is included in this repository. In summary:
 
 ```
 brew install platformio
-git clone --recursive https://github.com/dogmaphobic/mavesp8266.git
+git clone --recursive https://github.com/Xelack/mavespx2.git
 cd mavesp8266
 platformio run
 ```
@@ -24,12 +25,16 @@ platformio run
 When you run ```platformio run``` for the first time, it will download the toolchains and all necessary libraries automatically.
 
 ### Useful commands:
-
-* ```platformio run``` - process/build all targets
-* ```platformio run -e esp12e``` - process/build just the ESP12e target (the NodeMcu v2, Adafruit HUZZAH, etc.)
+ESP32:
 * ```platformio run -e esp32``` - process/build just the ESP32 target ("must common" ESP32 module with 4mo flash)
+
+ESP8266:
+* ```platformio run -e esp12e``` - process/build just the ESP12e target (the NodeMcu v2, Adafruit HUZZAH, etc.)
 * ```platformio run -e pw_link``` - process/build just the CUAV PW_LINK target (based on ESP8622EX with 4mo flash)
 * ```platformio run -e esp12e -t upload``` - build and upload firmware to embedded board
+
+ALL :
+* ```platformio run``` - process/build all targets
 * ```platformio run -t clean``` - clean project (remove compiled files)
 
 
