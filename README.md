@@ -2,7 +2,7 @@
 
 ## Current Binary
 
-Download the current version (MAVLink V2) from here: [Firmware version 1.0.0]
+Download the current version (MAVLink V2) from here: [Firmware version 1.0.0] (https://github.com/Xelack/mavespx2/releases/tag/RC-V1.0.0)
 
 Download the legacy version (MAVLink V2) from here: [Firmware version 1.2.2](http://www.grubba.com/mavesp8266/firmware-1.2.2.bin)
 
@@ -40,7 +40,6 @@ ALL :
 
 The resulting image(s) can be found in the directory ```.pio\build\[target]``` created during the build process.
 
-
 ### MavLink Submodule
 
 The ```git clone --recursive``` above not only cloned the MavESP8266 repository but it also installed the dependent [MavLink](https://github.com/mavlink/c_library) sub-module. To upated the module (when needed), use the command:
@@ -64,6 +63,30 @@ FC (RX) <- (TX) GPIO17 (MAVESP - define by UART_MAVFC_TX in source code)
 * Resetting to Defaults: In case you change the parameters and get locked out of the module, all the parameters can be reset by bringing the GPIO pin low.
     For ESP8266: Connect GPIO02 pin to GND pin.
     For ESP32: Connect GPIO22 pin to GND pin.
+
+### Status LED
+
+This feature is availlable for esp32 and PW_LINK with builtin led (GPIO02 is used by default).
+For others boards you can add led on a availlabe GPIO but you need set this GPIO in source code and rebuild the firmware (or tell me ^^ ).
+
+Meaning:
+blink at 1hz : On start, waiting wifi client. 
+Stay on : update in progress.
+Blink at 2hz : reboot imminant.
+
+### Actions on button
+
+This feature is availlable for all board (except PW_LINK) with free GPIO (default GPIO : ref to wiring). 
+Just Plug a button to GPIO pin and GND pin.
+
+2 pushs : test (for debug, do nothing).
+3 pushs : request reboot.
+4 pushs : request restore default parameters.
+5 pushs : request factory reset.
+
+> 5 pushs : reset button action after 2s.
+
+Actions are commit ant start only 2 seconds after the last push.
 
 ### MavLink Protocol
 
