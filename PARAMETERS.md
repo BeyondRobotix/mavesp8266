@@ -15,7 +15,7 @@ If this message is sent specifically to the MavESP8266 component ID, it will ret
 
 ##### MAVLINK_MSG_ID_PARAM_SET
 
-If this message is sent specifically to the MavESP8266 component ID, it will set the new value for the specified parameter. Note that this only sets the value for the current session. It does not write the values to EEPROM. See MAV_CMD_PREFLIGHT_STORAGE below.
+If this message is sent specifically to the MavESP8266 component ID, it will set the new value for the specified parameter. Note that this only sets the value for the current session. It does not write the values to EEPROM. To apply parameters changes a reboot is mandatory (ref to. MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN). See MAV_CMD_PREFLIGHT_STORAGE below.
 
 #### Available Parameters
 
@@ -55,6 +55,7 @@ If this message is sent specifically to the MavESP8266 component ID, it will set
 * (2) MavLink parameter messages only support a 32-Bit parameter (be it a float, an uint32_t, etc.) In other to fit a 16-character SSID and a 16-character Password, 4 paramaters are used for each. The 32-Bit storage is used to contain 4 bytes for the string.
 * (3) The mode defaults to 0. Set to 0 to act as an Access Point. Set to 1 to connect to an existing WiFi network using the STA (Station Mode) SSID and password. When in *Station Mode*, the module will attempt to connect for up to one minute. If after that it cannot connect, it reverts to AP mode.
 * (4) Defaults to 0 for an unset address. If either the STA IP, Gateway, or Subnet are set, then all three need to be set for it to work properly.
+* (5) The WiFi RSSI status from ESP device is only availlable in Station mode. In AP mode this information is availlable on device (laptop, smartphone, etc...) connected to ESP.
 
 #### MAVLINK_MSG_ID_COMMAND_LONG
 

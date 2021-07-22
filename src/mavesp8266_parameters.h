@@ -38,15 +38,56 @@
 #ifndef MAVESP8266_PARAMETERS_H
 #define MAVESP8266_PARAMETERS_H
 
+
+//-- Constants
 #define WIFI_MODE_AP 0
 #define WIFI_MODE_STA 1
 
-//-- Constants
+//GPIO/SERIAL mapping
+#ifndef ESP32
+    #define GPIO1 GPIO_ID_PIN0+1
+    #define GPIO2 GPIO_ID_PIN0+2
+    #define GPIO3 GPIO_ID_PIN0+3
+#endif
+
+#ifdef ESP32
+    #define UART_DEBUG_TX  GPIO_NUM_1
+    #define UART_DEBUG_RX  GPIO_NUM_3
+    #define UART_MAVFC_TX  GPIO_NUM_17
+    #define UART_MAVFC_RX  GPIO_NUM_16
+    #define STATUS_LED     GPIO_NUM_2
+    #define RESTORE_BTN    GPIO_NUM_22
+    #define LED_ON         HIGH
+    #define LED_OFF        LOW
+#else
+    #define UART_DEBUG_TX  GPIO2
+    #define UART_MAVFC_TX  GPIO1
+    #define UART_MAVFC_RX  GPIO3
+#ifndef PW_LINK
+    #define RESTORE_BTN    GPIO2  //only when debug is disable
+    #define STATUS_LED     -1
+    #define LED_ON         HIGH
+    #define LED_OFF        LOW
+#else
+    #define STATUS_LED     GPIO2 //serial debug not possible
+    #define LED_ON         LOW
+    #define LED_OFF        HIGH
+#endif
+#endif
+
+#if defined(ESP32) || defined(PW_LINK) 
+    #define SET_STATUS_LED(state) do { digitalWrite(STATUS_LED, state); } while(0)
+#else
+    #define SET_STATUS_LED(state) do { } while(0)
+#endif
+
+//Communication settings
 #define DEFAULT_WIFI_MODE       WIFI_MODE_AP
 #define DEFAULT_UART_SPEED      921600
 #define DEFAULT_WIFI_CHANNEL    11
 #define DEFAULT_UDP_HPORT       14550
 #define DEFAULT_UDP_CPORT       14555
+#define DNSNAME                 "MavEspX2"
 
 struct stMavEspParameters {
     char        id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN];

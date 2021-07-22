@@ -130,11 +130,11 @@ MavESP8266Component::handleMessage(MavESP8266Bridge* sender, mavlink_message_t* 
 
 //---------------------------------------------------------------------------------
 //-- Send Debug Message
-void
+int
 MavESP8266Component::_sendStatusMessage(MavESP8266Bridge* sender, uint8_t type, const char* text)
 {
     if(!getWorld()->getParameters()->getDebugEnabled() && type == MAV_SEVERITY_DEBUG) {
-        return;
+        return 0;
     }
     //-- Build message
     mavlink_message_t msg;
@@ -146,11 +146,8 @@ MavESP8266Component::_sendStatusMessage(MavESP8266Bridge* sender, uint8_t type, 
         type,
         text
     );
-    sender->sendMessage(&msg);
+    return sender->sendMessage(&msg);
 }
-
-
-
 
 //---------------------------------------------------------------------------------
 //-- Set parameter
@@ -277,7 +274,8 @@ MavESP8266Component::_handleCmdLong(MavESP8266Bridge* sender, mavlink_command_lo
         }
     } else if(cmd->command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN) {
         //-- Reset "Companion Computer"
-        if((uint8_t)cmd->param2 == 1) {
+        if(((compID == MAV_COMP_ID_UDP_BRIDGE) || (compID == MAV_COMP_ID_ALL)) 
+            && (uint8_t)cmd->param2 == 1) {
             result = MAV_RESULT_ACCEPTED;
             reboot = true;
         }
@@ -309,13 +307,42 @@ MavESP8266Component::_handleCmdLong(MavESP8266Bridge* sender, mavlink_command_lo
     }
 }
 
-
 //---------------------------------------------------------------------------------
 //-- Reboot
 void
 MavESP8266Component::_wifiReboot(MavESP8266Bridge* sender)
 {
     _sendStatusMessage(sender, MAV_SEVERITY_NOTICE, "Rebooting WiFi Bridge.");
-    delay(50);
-    ESP.reset();
+    delay(100);
+    getWorld()->getParameters()->saveAllToEeprom(); //backup all changes done in parameters before reboot
+    delay(100);
+    rebootDevice();
 }
+//---------------------------------------------------------------------------------
+//-- Send notice msg to ground station
+void MavESP8266Component::rebootDevice(){
+    DEBUG_LOG("Reboot pending.\n");
+    uint8_t state = LED_OFF;
+    for (int s = 5; s >= 0; s--)
+    {
+        state = (state == LED_ON) ? LED_OFF : LED_ON;
+        SET_STATUS_LED(state);
+        delay(500);
+        state = (state == LED_ON) ? LED_OFF : LED_ON;
+        SET_STATUS_LED(state);
+        DEBUG_LOG("..%d", s);
+        delay(500);
+    }
+    DEBUG_LOG("\nReboot\n");
+    ESP.restart();
+}
+
+//---------------------------------------------------------------------------------
+//-- Send notice msg to ground station
+int
+MavESP8266Component::sendMsgToGCS(const char* text)
+{
+    return _sendStatusMessage((MavESP8266Bridge*) getWorld()->getGCS(), MAV_SEVERITY_NOTICE, text);
+}
+
+

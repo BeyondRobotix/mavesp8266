@@ -48,9 +48,11 @@ public:
     bool handleMessage        (MavESP8266Bridge* sender, mavlink_message_t* message);
     bool inRawMode            ();
     void resetRawMode         () { _in_raw_mode_time = millis(); }
+    int  sendMsgToGCS         (const char* text);
+    void rebootDevice         ();
 
 private:
-    void    _sendStatusMessage      (MavESP8266Bridge* sender, uint8_t type, const char* text);
+    int     _sendStatusMessage      (MavESP8266Bridge* sender, uint8_t type, const char* text);
     void    _handleParamSet         (MavESP8266Bridge* sender, mavlink_param_set_t* param);
     void    _handleParamRequestList (MavESP8266Bridge* sender);
     void    _handleParamRequestRead (MavESP8266Bridge* sender, mavlink_param_request_read_t* param);

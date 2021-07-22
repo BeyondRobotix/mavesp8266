@@ -38,18 +38,36 @@
 #ifndef MAVESP8266_H
 #define MAVESP8266_H
 
-#include <ESP8266WiFi.h>
+#ifndef ESP32
+    #include <ESP8266WiFi.h>
+#else
+    #include <ESPmDNS.h>
+    #include <WiFi.h>
+    #include <WebServer.h>
+
+    extern "C" {
+        #include "esp32-hal-cpu.h" //for CPU Frequence change with setCpuFrequencyMhz()
+    } 
+#endif
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
 
 #undef F
+#ifndef ESP32
+    #pragma GCC diagnostic push 
+    #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
 #include <ardupilotmega/mavlink.h>
+#ifndef ESP32
+    #pragma GCC diagnostic pop
+#endif
 
+#ifdef ARDUINO_ESP8266_ESP12
  extern "C" {
     // Espressif SDK
     #include "user_interface.h"
 }
-
+#endif
 class MavESP8266Parameters;
 class MavESP8266Component;
 class MavESP8266Vehicle;
@@ -69,8 +87,10 @@ class MavESP8266GCS;
 //#define ENABLE_DEBUG
 
 #ifdef ENABLE_DEBUG
-#define DEBUG_LOG(format, ...) do { getWorld()->getLogger()->log(format, ## __VA_ARGS__); } while(0)
+#define DEBUG_PRINT(format,...) do { getWorld()->getLogger()->print(format, ## __VA_ARGS__); } while(0)
+#define DEBUG_LOG(format,...) do { getWorld()->getLogger()->log(format, ## __VA_ARGS__); } while(0)
 #else
+#define DEBUG_PRINT(format,...) do { } while(0)
 #define DEBUG_LOG(format, ...) do { } while(0)
 #endif
 
@@ -126,6 +146,7 @@ public:
     MavESP8266Log   ();
     void            begin           (size_t bufferSize); // Allocate a buffer for the log
     size_t          log             (const char *format, ...); // Add to the log
+    void          print           (const char *format, ...); // only print on serial
     String          getLog          (uint32_t* pStart, uint32_t* pLen); // Get the log starting at a position
     uint32_t        getLogSize      (); // Number of bytes available at the current log position
     uint32_t        getPosition     ();
@@ -155,7 +176,10 @@ public:
     virtual ~MavESP8266Update(){;}
     virtual void updateStarted  () = 0;
     virtual void updateCompleted() = 0;
-    virtual void updateError    () = 0;
+    virtual void updateError    (String error_msg) = 0;
+    virtual String getLastError () = 0;
+    virtual bool isUpdating     () = 0;
+
 };
 
 extern MavESP8266World* getWorld();

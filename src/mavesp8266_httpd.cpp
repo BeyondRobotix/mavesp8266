@@ -34,20 +34,51 @@
  *
  * @author Gus Grubba <mavlink@grubba.com>
  */
-
-#include <ESP8266WebServer.h>
-
+#ifndef ESP32
+    #include <ESP8266WebServer.h>
+#else
+    #include <Update.h>
+#endif
 #include "mavesp8266.h"
 #include "mavesp8266_httpd.h"
+#include "mavesp8266_component.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
 
+
+#define WIFI_RX_VERY_LOW 0
+#define WIFI_RX_UNRELIABLE 1
+#define WIFI_RX_WEAK 2
+#define WIFI_RX_RELIABLE 3
+#define WIFI_RX_GOOD 4
+#define WIFI_RX_EXCELLENT 5
+#define WIFI_RX_MAX 6
+
+#ifndef FW_NAME
+    #define FW_NAME "unknown"
+#endif
+
+//Strength Wifi Signal based on https://eyesaas.com/wi-fi-signal-strength/
+const char* kWifiStrength[7] = {
+    "Very Low",                //(<= -90dBm)
+    "Unreliable",              //(<= -80dBm)
+    "Weak",                    //(<= -70dBm)
+    "Reliable",                //(<= -67dBm)
+    "Good",                    //(<= -60dBm)
+    "Excellent",               //(<=-50dBm)
+    "Maximum"                  //(<= -30dBm)
+};
+
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
 const char PROGMEM kTEXTHTML[]   = "text/html";
 const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
-const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVLink WiFi Bridge</a></h1><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='update'><br><input type='submit' value='Update'></form>";
-const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVLink WiFi Bridge</a></h1>";
+const char PROGMEM kUPLOADFORM[] = "<form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' accept='.bin' name='update'><br><label for='md5file'>Enter file checksum MD5:</label><br><input type='text' minlength='32' maxlength='32' name='md5file' value='' required><br><br><input type='submit' value='Update'></form>";
+#ifndef ENABLE_DEBUG
+    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVESPx2</a></h1><h2><a href='/'>MAVLink V2 WiFi Bridge</a></h2>";
+#else
+    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge (DEBUG)</title></head><body><h1><a href='/'>MAVESPx2 (DEBUG)</a></h1><h2><a href='/'>MAVLink WiFi Bridge</a></h2>";
+#endif
 const char PROGMEM kBADARG[]     = "BAD ARGS";
 const char PROGMEM kAPPJSON[]    = "application/json";
 
@@ -66,6 +97,10 @@ const char* kDEBUG      = "debug";
 const char* kREBOOT     = "reboot";
 const char* kPOSITION   = "position";
 const char* kMODE       = "mode";
+const char* kMD5        = "md5file";
+const char* kMSG2GCS    = "msg2gcs";
+
+const int   kMSG2GSM_MAX_LEN = 50;
 
 const char* kFlashMaps[7] = {
     "512KB (256/256)",
@@ -79,11 +114,15 @@ const char* kFlashMaps[7] = {
 
 static uint32_t flash = 0;
 static char paramCRC[12] = {""};
-
-ESP8266WebServer    webServer(80);
+#ifndef ESP32
+    ESP8266WebServer    webServer(80);
+#else
+    WebServer     webServer(80);
+    WiFiUDP       Udp;
+#endif
 MavESP8266Update*   updateCB    = NULL;
 bool                started     = false;
-
+HTTPUploadStatus    fileUploadStatus;
 //---------------------------------------------------------------------------------
 void setNoCacheHeaders() {
     webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -93,52 +132,143 @@ void setNoCacheHeaders() {
 
 //---------------------------------------------------------------------------------
 void returnFail(String msg) {
-    webServer.send(500, FPSTR(kTEXTPLAIN), msg + "\r\n");
+    String message = FPSTR(kHEADER);
+    message += msg;
+    message += "\r\n";
+    webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+    webServer.send(500, FPSTR(kTEXTHTML), message);
 }
 
 //---------------------------------------------------------------------------------
-void respondOK() {
-    webServer.send(200, FPSTR(kTEXTPLAIN), "OK");
+void respondOK(String msg) {
+    String message = FPSTR(kHEADER);
+    message += msg;
+    message += "\r\n";
+    webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+    webServer.send(200, FPSTR(kTEXTHTML), message);
 }
 
 //---------------------------------------------------------------------------------
 void handle_update() {
     webServer.sendHeader("Connection", "close");
-    webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-    webServer.send(200, FPSTR(kTEXTHTML), FPSTR(kUPLOADFORM));
+    if(getWorld()->getGCS()->isConnected()){
+        respondOK("Update not permit when the GCS is connected!");
+    }else{
+        respondOK(FPSTR(kUPLOADFORM));
+    }
 }
 
 //---------------------------------------------------------------------------------
-void handle_upload() {
+void handle_upload()
+{
+    bool bReboot = false;
+    char md5_str[33] = {0};
+    size_t md5_len = 0;
     webServer.sendHeader("Connection", "close");
-    webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-    webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? "FAIL" : "OK");
-    if(updateCB) {
-        updateCB->updateCompleted();
+    if(!updateCB->isUpdating()) 
+    {
+        started = false;
+        DEBUG_LOG("%s\n", updateCB->getLastError());
+        respondOK(updateCB->getLastError());
+        return;
     }
-    ESP.restart();
+
+    if (fileUploadStatus != UPLOAD_FILE_END)
+    {
+        DEBUG_LOG("File troncated, update canceled.\n");
+#ifdef ESP32
+        return;
+#else
+        bReboot = true; //the only (simple) way to reset current Update (to release memory allocations)
+#endif
+    }else{
+        if(webServer.hasArg(kMD5)) {
+            strncpy(md5_str, webServer.arg(kMD5).c_str(), sizeof(md5_str));
+            md5_len = strlen(md5_str);
+            for (size_t i = 0; i < md5_len; i++)
+            { //to lower case
+                md5_str[i] = tolower(md5_str[i]);
+            }
+        }
+        DEBUG_LOG("\nTry to update ...\n");
+        if(md5_len > 0){
+            DEBUG_LOG("MD5 to check: %s\n", (const char *)md5_str);
+            Update.setMD5((const char *)md5_str);
+            if (Update.end(true))
+            {
+                DEBUG_LOG("MD5 check passsed, update success!\n");
+                bReboot = true;
+#ifdef DEBUG_SERIAL
+                DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+#endif
+            }
+            else
+            {
+#ifdef ESP32
+                DEBUG_LOG("Update stop : %s\n", Update.errorString());
+                if (Update.canRollBack())
+                {
+                    DEBUG_LOG("Roll back update\n");
+                    Update.rollBack();
+                    bReboot = true;
+                }
+#else
+                DEBUG_LOG("Update stop at the MD5 check\n");
+#endif
+            }
+#ifdef ESP32
+            respondOK((Update.hasError()) ? Update.errorString() : "OK");
+#else
+            respondOK((Update.hasError())? "FAIL" : "OK");
+#endif
+        }else{
+            DEBUG_LOG("MD5 not provided!\n");
+            respondOK("MD5 not provided!");
+        }
+    }
+    SET_STATUS_LED(LED_OFF);
+    updateCB->updateCompleted();
+
+    if (bReboot)
+    {
+        getWorld()->getComponent()->rebootDevice();
+    }
 }
 
 //---------------------------------------------------------------------------------
 void handle_upload_status() {
     bool success  = true;
-    if(!started) {
+    if(!started) { 
         started = true;
-        if(updateCB) {
+        if(getWorld()->getGCS()->isConnected()){
+            updateCB->updateError("Update not permit when the GCS is connected!");
+            return;
+        }else{
             updateCB->updateStarted();
-        }
+        } 
     }
+    if(!updateCB->isUpdating()){
+        return;
+    }
+
+    DEBUG_LOG(".");
     HTTPUpload& upload = webServer.upload();
+    fileUploadStatus = upload.status;
     if(upload.status == UPLOAD_FILE_START) {
+        SET_STATUS_LED(LED_ON);
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.setDebugOutput(true);
         #endif
+#ifndef ESP32
         WiFiUDP::stopAll();
+#else
+        Udp.stop();
+#endif
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
         #endif
         uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-        if(!Update.begin(maxSketchSpace)) {
+        if(!Update.begin(maxSketchSpace, U_FLASH)) {
             #ifdef DEBUG_SERIAL
                 Update.printError(DEBUG_SERIAL);
             #endif
@@ -151,34 +281,29 @@ void handle_upload_status() {
             #endif
             success = false;
         }
-    } else if (upload.status == UPLOAD_FILE_END) {
-        if (Update.end(true)) {
-            #ifdef DEBUG_SERIAL
-                DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-            #endif
-        } else {
-            #ifdef DEBUG_SERIAL
-                Update.printError(DEBUG_SERIAL);
-            #endif
-            success = false;
-        }
-        #ifdef DEBUG_SERIAL
-            DEBUG_SERIAL.setDebugOutput(false);
-        #endif
+    // } else if (upload.status == UPLOAD_FILE_END) {
+    //     //Nothing to do 
+    } else if(upload.status == UPLOAD_FILE_ABORTED){
+        DEBUG_LOG("Upload aborded, update cancel...\n");
+#ifdef ESP32
+        Update.abort();
+#endif
+        Update.clearError();
+        SET_STATUS_LED(LED_OFF);
+        success = false;
     }
+
     yield();
     if(!success) {
-        if(updateCB) {
-            updateCB->updateError();
-        }
+        updateCB->updateError("Upload fail");
     }
 }
 
 //---------------------------------------------------------------------------------
 void handle_getParameters()
 {
-    String message = FPSTR(kHEADER);
-    message += "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
+    // String message = FPSTR(kHEADER);
+    String message = "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
     for(int i = 0; i < MavESP8266Parameters::ID_COUNT; i++) {
         message += "<tr><td>";
         message += getWorld()->getParameters()->getAt(i)->id;
@@ -196,14 +321,15 @@ void handle_getParameters()
     }
     message += "</table>";
     message += "</body>";
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    //webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
 
 //---------------------------------------------------------------------------------
 static void handle_root()
 {
-    String message = FPSTR(kHEADER);
-    message += "Version: ";
+    // String message = FPSTR(kHEADER);
+    String message = "Version: ";
     char vstr[30];
     snprintf(vstr, sizeof(vstr), "%u.%u.%u", MAVESP8266_VERSION_MAJOR, MAVESP8266_VERSION_MINOR, MAVESP8266_VERSION_BUILD);
     message += vstr;
@@ -212,18 +338,63 @@ static void handle_root()
     message += "<li><a href='/getstatus'>Get Status</a>\n";
     message += "<li><a href='/setup'>Setup</a>\n";
     message += "<li><a href='/getparameters'>Get Parameters</a>\n";
+    message += "<li><a href='/message'>Send message to pilot</a>\n";
     message += "<li><a href='/update'>Update Firmware</a>\n";
     message += "<li><a href='/reboot'>Reboot</a>\n";
     message += "</ul></body>";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    // webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
+//---------------------------------------------------------------------------------
+static void provide_page_message(int send_status = -1)
+{
+    // String message = FPSTR(kHEADER);
+    String message = "<h3>Message for ground station</h3>\n";
+    message += "<form action='/send_msg' method='post'>\n";
+    message += "<input type='text' name='";
+    message += kMSG2GCS;
+    message += "' minlength='1' maxlength='";
+    message += kMSG2GSM_MAX_LEN;
+    message += "' value='' required><br>";
+    message += "<br>";
+    message += "<input type='submit' value='Send'><br>";
+    if(send_status > 0){
+        message += "Last message sent!&nbsp;<br>";
+    }else if (send_status == 0){
+        message += "Last message NOT sent!&nbsp;<br>";
+    }
+    message += "</form>";
+    setNoCacheHeaders();
+    // webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
+}
+//---------------------------------------------------------------------------------
+static void handle_message()
+{
+    provide_page_message();
+}
+//---------------------------------------------------------------------------------
 
+static void handle_send_msg(){
+    int send_status = 0;
+    if(webServer.args() == 0) {
+        returnFail(kBADARG);
+        return;
+    }
+    if(webServer.hasArg(kMSG2GCS)) {
+        if((webServer.arg(kMSG2GCS).length() <= kMSG2GSM_MAX_LEN ) 
+            && getWorld()->getGCS()->isConnected()){
+            send_status = getWorld()->getComponent()->sendMsgToGCS(webServer.arg(kMSG2GCS).c_str());
+        }
+    }
+    provide_page_message(send_status);
+}
 //---------------------------------------------------------------------------------
 static void handle_setup()
 {
-    String message = FPSTR(kHEADER);
-    message += "<h1>Setup</h1>\n";
+    // String message = FPSTR(kHEADER);
+    String message = "<h1>Setup</h1>\n";
     message += "<form action='/setparameters' method='post'>\n";
 
     message += "WiFi Mode:&nbsp;";
@@ -300,13 +471,14 @@ static void handle_setup()
     message += "<input type='submit' value='Save'>";
     message += "</form>";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    // webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
-
-
 //---------------------------------------------------------------------------------
 static void handle_getStatus()
 {
+    int8_t iRssi = 0;
+    int8_t iWifiThreshold = 0; 
     if(!flash)
         flash = ESP.getFreeSketchSpace();
     if(!paramCRC[0]) {
@@ -314,8 +486,24 @@ static void handle_getStatus()
     }
     linkStatus* gcsStatus = getWorld()->getGCS()->getStatus();
     linkStatus* vehicleStatus = getWorld()->getVehicle()->getStatus();
-    String message = FPSTR(kHEADER);
-    message += "<p>Comm Status</p><table><tr><td width=\"240\">Packets Received from GCS</td><td>";
+    if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_STA){
+        iRssi = WiFi.RSSI();
+        iWifiThreshold = 0; 
+        if(iRssi == 0) {
+            iWifiThreshold = WIFI_RX_MAX;
+        }else{
+            iWifiThreshold = (iRssi <= -90)? WIFI_RX_VERY_LOW : iWifiThreshold;
+            iWifiThreshold = ((-90 < iRssi) && (iRssi <= -80)) ? WIFI_RX_VERY_LOW : iWifiThreshold;
+            iWifiThreshold = ((-80 < iRssi) && (iRssi <= 70)) ? WIFI_RX_UNRELIABLE : iWifiThreshold;
+            iWifiThreshold = ((-70 < iRssi) && (iRssi <= 67)) ? WIFI_RX_WEAK : iWifiThreshold;
+            iWifiThreshold = ((-67 < iRssi) && (iRssi <= 60)) ? WIFI_RX_RELIABLE : iWifiThreshold;
+            iWifiThreshold = ((-60 < iRssi) && (iRssi <= 50)) ? WIFI_RX_GOOD : iWifiThreshold;
+            iWifiThreshold = ((-50 < iRssi) && (iRssi <= 30)) ? WIFI_RX_EXCELLENT : iWifiThreshold;
+            iWifiThreshold = (-30 <= iRssi) ? WIFI_RX_MAX : iWifiThreshold;
+        }
+    }
+    // String message = FPSTR(kHEADER);
+    String message = "<p>Comm Status</p><table><tr><td width=\"240\">Packets Received from GCS</td><td>";
     message += gcsStatus->packets_received;
     message += "</td></tr><tr><td>Packets Sent to GCS</td><td>";
     message += gcsStatus->packets_sent;
@@ -331,8 +519,19 @@ static void handle_getStatus()
     message += gcsStatus->radio_status_sent;
     message += "</td></tr></table>";
     message += "<p>System Status</p><table>\n";
+    if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_STA){
+        message += "<tr><td width=\"240\">Wifi Signal Strength (RSSI)</td><td>";
+        message += iRssi; 
+        message += " dBm ";
+        message += kWifiStrength[iWifiThreshold];
+        message += "</td></tr>\n";
+    }
     message += "<tr><td width=\"240\">Flash Size</td><td>";
+#ifndef ESP32
     message += ESP.getFlashChipRealSize();
+#else
+    message += ESP.getFlashChipSize();
+#endif
     message += "</td></tr>\n";
     message += "<tr><td width=\"240\">Flash Available</td><td>";
     message += flash;
@@ -346,7 +545,8 @@ static void handle_getStatus()
     message += "</table>";
     message += "</body>";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    // webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
 
 //---------------------------------------------------------------------------------
@@ -358,34 +558,54 @@ void handle_getJLog()
     }
     String logText = getWorld()->getLogger()->getLog(&position, &len);
     char jStart[128];
-    snprintf(jStart, 128, "{\"len\":%d, \"start\":%d, \"text\": \"", len, position);
+    snprintf(jStart, 128, "{\"len\":%d, \"start\":%d, \"logs\": [", len, position);
     String payLoad = jStart;
     payLoad += logText;
-    payLoad += "\"}";
+    payLoad += "]}";
     webServer.send(200, FPSTR(kAPPJSON), payLoad);
 }
 
 //---------------------------------------------------------------------------------
 void handle_getJSysInfo()
 {
-    if(!flash)
+    if(!flash){
         flash = ESP.getFreeSketchSpace();
+    }
     if(!paramCRC[0]) {
         snprintf(paramCRC, sizeof(paramCRC), "%08X", getWorld()->getParameters()->paramHashCheck());
     }
+#ifndef ESP32
     uint32_t fid = spi_flash_get_id();
+#else
+    uint32_t fid = 0;
+    for(int i=0; i<17; i=i+8) {
+	  fid |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+	}
+#endif
     char message[512];
     snprintf(message, 512,
         "{ "
+        "\"firmware\": \"%s\", "
+#ifndef ESP32
         "\"size\": \"%s\", "
         "\"id\": \"0x%02lX 0x%04lX\", "
+#else
+        "\"size\": \"%u\", "
+        "\"id\": \"%u\", "
+#endif
         "\"flashfree\": \"%u\", "
         "\"heapfree\": \"%u\", "
         "\"logsize\": \"%u\", "
         "\"paramcrc\": \"%s\""
         " }",
+        FW_NAME,
+#ifndef ESP32
         kFlashMaps[system_get_flash_size_map()],
         (long unsigned int)(fid & 0xff), (long unsigned int)((fid & 0xff00) | ((fid >> 16) & 0xff)),
+#else
+        ESP.getFlashChipSize(),
+        fid,
+#endif
         flash,
         ESP.getFreeHeap(),
         getWorld()->getLogger()->getPosition(),
@@ -505,7 +725,7 @@ void handle_setParameters()
         handle_getParameters();
         if(reboot) {
             delay(100);
-            ESP.restart();
+            getWorld()->getComponent()->rebootDevice();
         }
     } else
         returnFail(kBADARG);
@@ -514,12 +734,9 @@ void handle_setParameters()
 //---------------------------------------------------------------------------------
 static void handle_reboot()
 {
-    String message = FPSTR(kHEADER);
-    message += "rebooting ...</body>\n";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
-    delay(500);
-    ESP.restart();    
+    respondOK("rebooting ...</body>\n");
+    getWorld()->getComponent()->rebootDevice();   
 }
 
 //---------------------------------------------------------------------------------
@@ -551,7 +768,12 @@ void
 MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
 {
     updateCB = updateCB_;
+    if(!updateCB){
+        return;
+    }
     webServer.on("/",               handle_root);
+    webServer.on("/message",        handle_message);
+    webServer.on("/send_msg",       handle_send_msg);
     webServer.on("/getparameters",  handle_getParameters);
     webServer.on("/setparameters",  handle_setParameters);
     webServer.on("/getstatus",      handle_getStatus);

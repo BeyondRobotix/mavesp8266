@@ -58,7 +58,11 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
 {
     MavESP8266Bridge::begin(forwardTo);
     //-- Start UART connected to UAS
-    Serial.begin(getWorld()->getParameters()->getUartBaudRate());
+#ifndef ESP32
+    Serial.begin(getWorld()->getParameters()->getUartBaudRate(), SERIAL_8N1, SERIAL_FULL, UART_MAVFC_TX);
+#else
+    Serial.begin(getWorld()->getParameters()->getUartBaudRate(), SERIAL_8N1, UART_MAVFC_RX , UART_MAVFC_TX);
+#endif
     //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
 #ifdef ENABLE_DEBUG
 #ifdef ARDUINO_ESP8266_ESP12
@@ -174,19 +178,21 @@ MavESP8266Vehicle::getStatus()
 bool
 MavESP8266Vehicle::_readMessage()
 {
-    bool msgReceived = false;
+    bool bMsgReceived = false;
+    uint8_t uMsgReceived = MAVLINK_FRAMING_INCOMPLETE;
     while(Serial.available())
     {
         int result = Serial.read();
         if (result >= 0)
         {
             // Parsing
-            msgReceived = mavlink_frame_char_buffer(&_rxmsg,
+            uMsgReceived = mavlink_frame_char_buffer(&_rxmsg,
                                                     &_rxstatus,
                                                     result,
                                                     &_message[_queue_count],
                                                     &_mav_status);
-            if(msgReceived) {
+            if(uMsgReceived != MAVLINK_FRAMING_INCOMPLETE) {
+                bMsgReceived = true;
                 _status.packets_received++;
                 //-- Is this the first packet we got?
                 if(!_heard_from) {
@@ -203,8 +209,8 @@ MavESP8266Vehicle::_readMessage()
                     _checkLinkErrors(&_message[_queue_count]);
                 }
 
-                if (msgReceived == MAVLINK_FRAMING_BAD_CRC ||
-                    msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                if (uMsgReceived == MAVLINK_FRAMING_BAD_CRC ||
+                    uMsgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
                     // we don't process messages locally with bad CRC,
                     // but we do forward them, so when new messages
                     // are added we can bridge them
@@ -215,7 +221,7 @@ MavESP8266Vehicle::_readMessage()
                 if(getWorld()->getComponent()->handleMessage(this, &_message[_queue_count])){
                     //-- Eat message (don't send it to GCS)
                     memset(&_message[_queue_count], 0, sizeof(mavlink_message_t));
-                    msgReceived = false;
+                    bMsgReceived = false;
                     continue;
                 }
 
@@ -223,13 +229,13 @@ MavESP8266Vehicle::_readMessage()
             }
         }
     }
-    if(!msgReceived) {
+    if(!bMsgReceived) {
         if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
             _heard_from = false;
             getWorld()->getLogger()->log("Heartbeat timeout from Vehicle\n");
         }
     }
-    return msgReceived;
+    return bMsgReceived;
 }
 
 //---------------------------------------------------------------------------------

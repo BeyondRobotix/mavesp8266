@@ -40,6 +40,7 @@
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
 
+
 //---------------------------------------------------------------------------------
 MavESP8266GCS::MavESP8266GCS()
     : _udp_port(DEFAULT_UDP_HPORT)
@@ -60,6 +61,7 @@ MavESP8266GCS::begin(MavESP8266Bridge* forwardTo, IPAddress gcsIP)
     _udp_port = getWorld()->getParameters()->getWifiUdpHport();
     //-- Start UDP
     _udp.begin(getWorld()->getParameters()->getWifiUdpCport());
+    _connected = false;
 }
 
 //---------------------------------------------------------------------------------
@@ -87,7 +89,8 @@ MavESP8266GCS::readMessage()
 bool
 MavESP8266GCS::_readMessage()
 {
-    bool msgReceived = false;
+    bool bMsgReceived = false;
+    uint8_t uMsgReceived = MAVLINK_FRAMING_INCOMPLETE;
     int udp_count = _udp.parsePacket();
     if(udp_count > 0)
     {
@@ -97,12 +100,13 @@ MavESP8266GCS::_readMessage()
             if (result >= 0)
             {
                 // Parsing
-                msgReceived = mavlink_frame_char_buffer(&_rxmsg,
+                uMsgReceived = mavlink_frame_char_buffer(&_rxmsg,
                                                         &_rxstatus,
                                                         result,
                                                         &_message,
                                                         &_mav_status);
-                if(msgReceived) {
+                if(uMsgReceived != MAVLINK_FRAMING_INCOMPLETE) {
+                    bMsgReceived = true;
                     //-- We no longer need to broadcast
                     _status.packets_received++;
                     if(_ip[3] == 255) {
@@ -112,9 +116,14 @@ MavESP8266GCS::_readMessage()
                     //-- First packets
                     if(!_heard_from) {
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+                            _connected = true;
                             //-- We no longer need DHCP
                             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
+#ifndef ESP32
                                 wifi_softap_dhcps_stop();
+#else
+                                tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
+#endif
                             }
                             _heard_from      = true;
                             _system_id       = _message.sysid;
@@ -128,8 +137,8 @@ MavESP8266GCS::_readMessage()
                         _checkLinkErrors(&_message);
                     }
 
-                    if (msgReceived == MAVLINK_FRAMING_BAD_CRC ||
-                        msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                    if (uMsgReceived == MAVLINK_FRAMING_BAD_CRC ||
+                        uMsgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
                         // we don't process messages locally with bad CRC,
                         // but we do forward them, so when new messages
                         // are added we can bridge them
@@ -140,7 +149,7 @@ MavESP8266GCS::_readMessage()
                     if(getWorld()->getComponent()->handleMessage(this, &_message)){
                         //-- Eat message (don't send it to FC)
                         memset(&_message, 0, sizeof(_message));
-                        msgReceived = false;
+                        bMsgReceived = false;
                         continue;
                     }
 
@@ -151,18 +160,24 @@ MavESP8266GCS::_readMessage()
             }
         }
     }
-    if(!msgReceived) {
+    if(!bMsgReceived) {
         if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
+
             //-- Restart DHCP and start broadcasting again
             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
+#ifndef ESP32
                 wifi_softap_dhcps_start();
+#else
+                tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP);
+#endif
             }
             _heard_from = false;
+            _connected = false;
             _ip[3] = 255;
             getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
         }
     }
-    return msgReceived;
+    return bMsgReceived;
 }
 
 void
@@ -238,7 +253,11 @@ MavESP8266GCS::sendMessageRaw(uint8_t *buffer, int len) {
     //_udp.flush();
     return sent;
 }
-
+//---------------------------------------------------------------------------------
+//-- return GCS connected status
+bool MavESP8266GCS::isConnected(){
+    return _connected;
+}
 //---------------------------------------------------------------------------------
 //-- Send Radio Status
 void
@@ -248,11 +267,15 @@ MavESP8266GCS::_sendRadioStatus()
     uint8_t rssi = 0;
     uint8_t lostVehicleMessages = 100;
     uint8_t lostGcsMessages = 100;
-
+#ifndef ESP32
     if(wifi_get_opmode() == STATION_MODE) {
         rssi = (uint8_t)wifi_station_get_rssi();
     }
-
+#else
+    if(WiFi.getMode() == WIFI_MODE_STA) {
+        rssi = (uint8_t)WiFi.RSSI();
+    }
+#endif
     if (st->packets_received > 0) {
         lostVehicleMessages = (st->packets_lost * 100) / st->packets_received;
     }
@@ -303,3 +326,4 @@ MavESP8266GCS::_sendSingleUdpMessage(mavlink_message_t* msg)
     }
     _status.packets_sent++;
 }
+
