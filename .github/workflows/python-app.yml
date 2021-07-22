@@ -33,5 +33,5 @@ jobs:
         git submodule update --init
       shell: bash
     - name: Run PlatformIO
-      run: pio run -e esp01_1m
+      run: pio run -e esp32 -e esp12e -e esp01_1m -e pw_link
       shell: bash
