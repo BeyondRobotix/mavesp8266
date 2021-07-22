@@ -2,9 +2,17 @@
 
 ## Current Binary
 
+* Release Candidate Version 1.0.0
 Download the current version (MAVLink V2) from here: [Firmware version 1.0.0] (https://github.com/Xelack/mavespx2/releases/tag/RC-V1.0.0)
 
-Download the legacy version (MAVLink V2) from here: [Firmware version 1.2.2](http://www.grubba.com/mavesp8266/firmware-1.2.2.bin)
+Important Note : Please pay attention to select the correct firmware for your device. If you have any doubts don't take the risk and ask me.
+
+ * mavespx2-esp01-x_x_x.bin : for board based on module ESP8266 with 512kb Flash (80kb ram).
+ * mavespx2-esp12e-x_x_x.bin : for board based on module ESP8266 with 4mb Flash (80k ram), the major part of the market.
+ * mavespx2-pw_link-x_x_x.bin : only for CUAV pw_link board (based on ESP8266EX chip).
+ * mavespx2-esp32dev-x_x_x.zip : for board based on module ESP32 with 4mb Flash (zip file including partition file and firmware).
+ * mavespx2-wemos_d1_mini32-1_0_0.zip : for D1 board based on module ESP32 with 4mb Flash (zip file including partition file and firmware).
+
 
 ## WiFi Access Point and MavLink Bridge
 
@@ -79,14 +87,15 @@ Meaning:
 This feature is availlable for all board (except PW_LINK) with free GPIO (default GPIO : ref to wiring). 
 Just Plug a button to GPIO pin and GND pin.
 
-* 2 pushs : test (for debug, do nothing).
-* 3 pushs : request reboot.
-* 4 pushs : request restore default parameters.
-* 5 pushs : request factory reset.
+* 2 presses : test (for debug, do nothing).
+* 3 presses : request reboot.
+* 4 presses : request restore default parameters.
+* 5 presses : request factory reset.
 
-* Sup. to 5 pushs : reset button action after 2s.
+* Sup. to 5 presses : reset button action after 2s.
 
-Actions are commit ant start only 2 seconds after the last push.
+Actions are commit and start only 2 seconds after the last push.
+If the delay between first press and second press is superior at 5 seconds cancel the first press.
 
 ### MavLink Protocol
 
