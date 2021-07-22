@@ -84,7 +84,7 @@ Just Plug a button to GPIO pin and GND pin.
 * 4 pushs : request restore default parameters.
 * 5 pushs : request factory reset.
 
-> 5 pushs : reset button action after 2s.
+* Sup. to 5 pushs : reset button action after 2s.
 
 Actions are commit ant start only 2 seconds after the last push.
 
