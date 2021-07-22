@@ -176,7 +176,10 @@ public:
     virtual ~MavESP8266Update(){;}
     virtual void updateStarted  () = 0;
     virtual void updateCompleted() = 0;
-    virtual void updateError    () = 0;
+    virtual void updateError    (String error_msg) = 0;
+    virtual String getLastError () = 0;
+    virtual bool isUpdating     () = 0;
+
 };
 
 extern MavESP8266World* getWorld();

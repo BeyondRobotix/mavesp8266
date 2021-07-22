@@ -64,15 +64,21 @@ public:
     }
     void updateCompleted()
     {
-        //-- TODO
+        _isUpdating = false;
     }
-    void updateError    ()
+    void updateError(String error_msg)
     {
-        //-- TODO
+        _isUpdating = false;
+        _lastError = error_msg;
+    }
+    String getLastError ()
+    {
+        return _lastError;
     }
     bool isUpdating     () { return _isUpdating; }
 private:
     bool _isUpdating;
+    String _lastError;
 };
 
 //-- Singletons

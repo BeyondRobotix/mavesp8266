@@ -73,9 +73,9 @@ const char* kWifiStrength[7] = {
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
 const char PROGMEM kTEXTHTML[]   = "text/html";
 const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
-const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVESPx2</a></h1><h2><a href='/'>MAVLink V2 WiFi Bridge</a></h2><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' accept='.bin' name='update'><br><label for='md5file'>Enter file checksum MD5:</label><br><input type='text' minlength='32' maxlength='32' name='md5file' value='' required><br><br><input type='submit' value='Update'></form>";
+const char PROGMEM kUPLOADFORM[] = "<form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' accept='.bin' name='update'><br><label for='md5file'>Enter file checksum MD5:</label><br><input type='text' minlength='32' maxlength='32' name='md5file' value='' required><br><br><input type='submit' value='Update'></form>";
 #ifndef ENABLE_DEBUG
-    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVESPx2</a></h1><h2><a href='/'>MAVLink WiFi Bridge</a></h2>";
+    const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVESPx2</a></h1><h2><a href='/'>MAVLink V2 WiFi Bridge</a></h2>";
 #else
     const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge (DEBUG)</title></head><body><h1><a href='/'>MAVESPx2 (DEBUG)</a></h1><h2><a href='/'>MAVLink WiFi Bridge</a></h2>";
 #endif
@@ -132,23 +132,30 @@ void setNoCacheHeaders() {
 
 //---------------------------------------------------------------------------------
 void returnFail(String msg) {
-    webServer.send(500, FPSTR(kTEXTPLAIN), msg + "\r\n");
+    String message = FPSTR(kHEADER);
+    message += msg;
+    message += "\r\n";
+    webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+    webServer.send(500, FPSTR(kTEXTHTML), message);
 }
 
 //---------------------------------------------------------------------------------
-void respondOK() {
-    webServer.send(200, FPSTR(kTEXTPLAIN), "OK");
+void respondOK(String msg) {
+    String message = FPSTR(kHEADER);
+    message += msg;
+    message += "\r\n";
+    webServer.sendHeader(FPSTR(kACCESSCTL), "*");
+    webServer.send(200, FPSTR(kTEXTHTML), message);
 }
 
 //---------------------------------------------------------------------------------
 void handle_update() {
     webServer.sendHeader("Connection", "close");
-    webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-    webServer.send(200, FPSTR(kTEXTHTML), FPSTR(kUPLOADFORM));
-    if(webServer.hasArg(kMD5)) {
-       DEBUG_LOG("\nMD5 update: %s\n", webServer.arg(kMD5).c_str());
+    if(getWorld()->getGCS()->isConnected()){
+        respondOK("Update not permit when the GCS is connected!");
+    }else{
+        respondOK(FPSTR(kUPLOADFORM));
     }
-
 }
 
 //---------------------------------------------------------------------------------
@@ -158,6 +165,14 @@ void handle_upload()
     char md5_str[33] = {0};
     size_t md5_len = 0;
     webServer.sendHeader("Connection", "close");
+    if(!updateCB->isUpdating()) 
+    {
+        started = false;
+        DEBUG_LOG("%s\n", updateCB->getLastError());
+        respondOK(updateCB->getLastError());
+        return;
+    }
+
     if (fileUploadStatus != UPLOAD_FILE_END)
     {
         DEBUG_LOG("File troncated, update canceled.\n");
@@ -201,24 +216,18 @@ void handle_upload()
                 DEBUG_LOG("Update stop at the MD5 check\n");
 #endif
             }
-            webServer.sendHeader(FPSTR(kACCESSCTL), "*");
 #ifdef ESP32
-            webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? Update.errorString() : "OK");
+            respondOK((Update.hasError()) ? Update.errorString() : "OK");
 #else
-            webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? "FAIL" : "OK");
+            respondOK((Update.hasError())? "FAIL" : "OK");
 #endif
         }else{
-            webServer.sendHeader(FPSTR(kACCESSCTL), "*");
-            webServer.send(200, FPSTR(kTEXTPLAIN), "MD5 not provided!");
             DEBUG_LOG("MD5 not provided!\n");
+            respondOK("MD5 not provided!");
         }
     }
     SET_STATUS_LED(LED_OFF);
-
-    if (updateCB)
-    {
-        updateCB->updateCompleted();
-    }
+    updateCB->updateCompleted();
 
     if (bReboot)
     {
@@ -229,12 +238,19 @@ void handle_upload()
 //---------------------------------------------------------------------------------
 void handle_upload_status() {
     bool success  = true;
-    if(!started) {
+    if(!started) { 
         started = true;
-        if(updateCB) {
+        if(getWorld()->getGCS()->isConnected()){
+            updateCB->updateError("Update not permit when the GCS is connected!");
+            return;
+        }else{
             updateCB->updateStarted();
-        }
+        } 
     }
+    if(!updateCB->isUpdating()){
+        return;
+    }
+
     DEBUG_LOG(".");
     HTTPUpload& upload = webServer.upload();
     fileUploadStatus = upload.status;
@@ -279,17 +295,15 @@ void handle_upload_status() {
 
     yield();
     if(!success) {
-        if(updateCB) {
-            updateCB->updateError();
-        }
+        updateCB->updateError("Upload fail");
     }
 }
 
 //---------------------------------------------------------------------------------
 void handle_getParameters()
 {
-    String message = FPSTR(kHEADER);
-    message += "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
+    // String message = FPSTR(kHEADER);
+    String message = "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
     for(int i = 0; i < MavESP8266Parameters::ID_COUNT; i++) {
         message += "<tr><td>";
         message += getWorld()->getParameters()->getAt(i)->id;
@@ -307,14 +321,15 @@ void handle_getParameters()
     }
     message += "</table>";
     message += "</body>";
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    //webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
 
 //---------------------------------------------------------------------------------
 static void handle_root()
 {
-    String message = FPSTR(kHEADER);
-    message += "Version: ";
+    // String message = FPSTR(kHEADER);
+    String message = "Version: ";
     char vstr[30];
     snprintf(vstr, sizeof(vstr), "%u.%u.%u", MAVESP8266_VERSION_MAJOR, MAVESP8266_VERSION_MINOR, MAVESP8266_VERSION_BUILD);
     message += vstr;
@@ -328,14 +343,14 @@ static void handle_root()
     message += "<li><a href='/reboot'>Reboot</a>\n";
     message += "</ul></body>";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    // webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
 //---------------------------------------------------------------------------------
 static void provide_page_message(int send_status = -1)
 {
-    String message = FPSTR(kHEADER);
-    message += "<h3>Message for ground station</h3>\n";
-    
+    // String message = FPSTR(kHEADER);
+    String message = "<h3>Message for ground station</h3>\n";
     message += "<form action='/send_msg' method='post'>\n";
     message += "<input type='text' name='";
     message += kMSG2GCS;
@@ -351,7 +366,8 @@ static void provide_page_message(int send_status = -1)
     }
     message += "</form>";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    // webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
 //---------------------------------------------------------------------------------
 static void handle_message()
@@ -377,8 +393,8 @@ static void handle_send_msg(){
 //---------------------------------------------------------------------------------
 static void handle_setup()
 {
-    String message = FPSTR(kHEADER);
-    message += "<h1>Setup</h1>\n";
+    // String message = FPSTR(kHEADER);
+    String message = "<h1>Setup</h1>\n";
     message += "<form action='/setparameters' method='post'>\n";
 
     message += "WiFi Mode:&nbsp;";
@@ -455,7 +471,8 @@ static void handle_setup()
     message += "<input type='submit' value='Save'>";
     message += "</form>";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    // webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
 //---------------------------------------------------------------------------------
 static void handle_getStatus()
@@ -485,8 +502,8 @@ static void handle_getStatus()
             iWifiThreshold = (-30 <= iRssi) ? WIFI_RX_MAX : iWifiThreshold;
         }
     }
-    String message = FPSTR(kHEADER);
-    message += "<p>Comm Status</p><table><tr><td width=\"240\">Packets Received from GCS</td><td>";
+    // String message = FPSTR(kHEADER);
+    String message = "<p>Comm Status</p><table><tr><td width=\"240\">Packets Received from GCS</td><td>";
     message += gcsStatus->packets_received;
     message += "</td></tr><tr><td>Packets Sent to GCS</td><td>";
     message += gcsStatus->packets_sent;
@@ -528,7 +545,8 @@ static void handle_getStatus()
     message += "</table>";
     message += "</body>";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
+    // webServer.send(200, FPSTR(kTEXTHTML), message);
+    respondOK(message);
 }
 
 //---------------------------------------------------------------------------------
@@ -716,11 +734,8 @@ void handle_setParameters()
 //---------------------------------------------------------------------------------
 static void handle_reboot()
 {
-    String message = FPSTR(kHEADER);
-    message += "rebooting ...</body>\n";
     setNoCacheHeaders();
-    webServer.send(200, FPSTR(kTEXTHTML), message);
-    delay(500);
+    respondOK("rebooting ...</body>\n");
     getWorld()->getComponent()->rebootDevice();   
 }
 
@@ -753,6 +768,9 @@ void
 MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
 {
     updateCB = updateCB_;
+    if(!updateCB){
+        return;
+    }
     webServer.on("/",               handle_root);
     webServer.on("/message",        handle_message);
     webServer.on("/send_msg",       handle_send_msg);
