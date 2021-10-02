@@ -180,19 +180,101 @@ void handle_getParameters()
     String message = FPSTR(kHEADER);
     message += "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
     for(int i = 0; i < MavESP8266Parameters::ID_COUNT; i++) {
-        message += "<tr><td>";
-        message += getWorld()->getParameters()->getAt(i)->id;
-        message += "</td>";
-        unsigned long val = 0;
-        if(getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT32)
-            val = (unsigned long)*((uint32_t*)getWorld()->getParameters()->getAt(i)->value);
-        else if(getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT16)
-            val = (unsigned long)*((uint16_t*)getWorld()->getParameters()->getAt(i)->value);
-        else
-            val = (unsigned long)*((int8_t*)getWorld()->getParameters()->getAt(i)->value);
-        message += "<td>";
-        message += val;
-        message += "</td></tr>";
+		if(i == getWorld()->getParameters()->ID_FWVER)
+		{
+			message += "<tr><td>";
+            message += getWorld()->getParameters()->getAt(i)->id;
+            message += "</td>";
+            message += "<td>";
+            message += MAVESP8266_VERSION_MAJOR;
+            message += ".";
+            message += MAVESP8266_VERSION_MINOR;
+            message += ".";
+            message += MAVESP8266_VERSION_BUILD;
+            message += "</td></tr>";
+		}
+        else if(i == getWorld()->getParameters()->ID_MODE)
+        {
+            message += "<tr><td>";
+            message += getWorld()->getParameters()->getAt(i)->id;
+            message += "</td>";
+            message += "<td>";
+            if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP)
+            {
+                message += "AP";
+            }
+            else
+            {
+                message += "STA";
+            }
+            message += "</td></tr>";
+        }
+        else if(i == getWorld()->getParameters()->ID_IPADDRESS)
+        {
+            message += "<tr><td>";
+            message += getWorld()->getParameters()->getAt(i)->id;
+            message += "</td>";
+            message += "<td>";
+            message += getWorld()->getParameters()->getLocalIPAddressInString();
+            message += "</td></tr>";
+        }
+        else if(i == getWorld()->getParameters()->ID_SSID1)
+        {
+            message += "<tr><td>";
+            message += getWorld()->getParameters()->getAt(i)->id;
+            message += "</td>";
+            message += "<td>";
+            message += getWorld()->getParameters()->getWifiSsid();
+            message += "</td></tr>";
+        }
+        else if(i > getWorld()->getParameters()->ID_SSID1 && i <= getWorld()->getParameters()->ID_SSID4) {}
+        else if(i == getWorld()->getParameters()->ID_PASS1)
+        {
+            message += "<tr><td>";
+            message += getWorld()->getParameters()->getAt(i)->id;
+            message += "</td>";
+            message += "<td>";
+            message += getWorld()->getParameters()->getWifiPassword();
+            message += "</td></tr>";
+        }
+        else if(i > getWorld()->getParameters()->ID_PASS1 && i <= getWorld()->getParameters()->ID_PASS4) {}
+        else if(i == getWorld()->getParameters()->ID_SSIDSTA1)
+        {
+            message += "<tr><td>";
+            message += getWorld()->getParameters()->getAt(i)->id;
+            message += "</td>";
+            message += "<td>";
+            message += getWorld()->getParameters()->getWifiStaSsid();
+            message += "</td></tr>";
+        }
+        else if(i > getWorld()->getParameters()->ID_SSIDSTA1 && i <= getWorld()->getParameters()->ID_SSIDSTA4) {}
+        else if(i == getWorld()->getParameters()->ID_PASSSTA1)
+        {
+            message += "<tr><td>";
+            message += getWorld()->getParameters()->getAt(i)->id;
+            message += "</td>";
+            message += "<td>";
+            message += getWorld()->getParameters()->getWifiStaPassword();
+            message += "</td></tr>";
+        }
+        else if(i > getWorld()->getParameters()->ID_PASSSTA1 && i <= getWorld()->getParameters()->ID_PASSSTA4) {}
+        else // integer values
+        {
+            message += "<tr><td>";
+            message += getWorld()->getParameters()->getAt(i)->id;
+            message += "</td>";
+            unsigned long val = 0;
+            if(getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT32)
+                val = (unsigned long)*((uint32_t*)getWorld()->getParameters()->getAt(i)->value);
+            else if(getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT16)
+                val = (unsigned long)*((uint16_t*)getWorld()->getParameters()->getAt(i)->value);
+            else
+                val = (unsigned long)*((int8_t*)getWorld()->getParameters()->getAt(i)->value);
+
+            message += "<td>";
+            message += val;
+            message += "</td></tr>";
+        }
     }
     message += "</table>";
     message += "</body>";
