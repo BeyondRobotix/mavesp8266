@@ -23,12 +23,20 @@ platformio run
 
 When you run ```platformio run``` for the first time, it will download the toolchains and all necessary libraries automatically.
 
-### Useful commands:
+### Useful commands: ESP12e
 
 * ```platformio run``` - process/build all targets
 * ```platformio run -e esp12e``` - process/build just the ESP12e target (the NodeMcu v2, Adafruit HUZZAH, etc.)
 * ```platformio run -e esp12e -t upload``` - build and upload firmware to embedded board
 * ```platformio run -t clean``` - clean project (remove compiled files)
+
+### Useful commands: ESP-01
+* ```platformio run``` - process/build all targets
+* ```platformio run -e esp01_1m``` - process/build just the ESP01 target with 1MB [Amazon](https://www.amazon.com/gp/product/B01EA3UJJ4)
+* ```platformio run -e esp01_1m -t upload``` - build and upload firmware to embedded board
+* ```platformio run -t clean``` - clean project (remove compiled files)
+
+
 
 The resulting image(s) can be found in the directory ```.pioenvs``` created during the build process.
 
@@ -43,6 +51,9 @@ The ```git clone --recursive``` above not only cloned the MavESP8266 repository 
 User level (as well as wiring) instructions can be found [here for px4](https://docs.px4.io/en/telemetry/esp8266_wifi_module.html) and [here for ArduPilot](http://ardupilot.org/copter/docs/common-esp8266-telemetry.html)
 
 * Resetting to Defaults: In case you change the parameters and get locked out of the module, all the parameters can be reset by bringing the GPIO02 pin low (Connect GPIO02 pin to GND pin). 
+
+Get the ESP-01 adapter board here on [Amazon](https://www.amazon.com/gp/product/B07Q17XJ36/); commonly called an "ESP01 programmer", this one has a little rocker switch on the side (UART side for serial TTL debugging by AT commands, PROG for firmware programming) and a yellow pin header which allows you plugin the ESP01 module without any wires. It defaults to 115200 and enumerates under Ubuntu as a ch341-uart converter. 
+
 
 ### MavLink Protocol
 
