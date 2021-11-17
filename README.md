@@ -23,6 +23,10 @@ platformio run
 
 When you run ```platformio run``` for the first time, it will download the toolchains and all necessary libraries automatically.
 
+### Useful commands: ESP32-WROOM
+
+* ```platformio run -e espwroom32 -t upload```
+
 ### Useful commands: ESP12e
 
 * ```platformio run``` - process/build all targets
