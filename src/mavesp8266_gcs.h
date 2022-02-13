@@ -59,7 +59,6 @@ private:
     void    _checkUdpErrors         (mavlink_message_t* msg);
 
 private:
-    WiFiUDP             _udp;
     IPAddress           _ip;
     uint16_t            _udp_port;
     mavlink_message_t   _message;

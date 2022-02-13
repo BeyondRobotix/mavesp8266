@@ -38,17 +38,26 @@
 #ifndef MAVESP8266_H
 #define MAVESP8266_H
 
+
+
+#ifdef ARDUINO_ESP32_DEV
+#include <WiFi.h>
+#else
 #include <ESP8266WiFi.h>
+#endif
+
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
 
 #undef F
 #include <ardupilotmega/mavlink.h>
 
- extern "C" {
+#ifndef ARDUINO_ESP32_DEV
+extern "C" {
     // Espressif SDK
     #include "user_interface.h"
 }
+#endif
 
 class MavESP8266Parameters;
 class MavESP8266Component;
