@@ -69,6 +69,7 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
     Serial.setRxBufferSize(1024);
 
     pinMode(GPIO0, OUTPUT);
+    _time_next_blink = 0;
 }
 
 //---------------------------------------------------------------------------------
@@ -278,7 +279,7 @@ MavESP8266Vehicle::statusUpdate() {
     // }
     // if (_heard_from) {
     //     _wifi_status = 2;
-    //     if (millis() - _time_next_blink <= 0) {
+    //     if (_time_next_blink - millis() <= 0) {
     //         if (_led_state) {
     //             digitalWrite(GPIO0, LOW);
     //         }
