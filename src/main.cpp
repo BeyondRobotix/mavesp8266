@@ -44,7 +44,7 @@
 
 #include <ESP8266mDNS.h>
 
-#define GPIO02  2
+#define GPIO00  0
 
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
@@ -132,8 +132,6 @@ void reset_interrupt(){
     ESP.reset();
 }
 
-
-
 //---------------------------------------------------------------------------------
 //-- Set things up
 void setup() {
@@ -145,8 +143,8 @@ void setup() {
     Serial1.begin(115200);
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
-    pinMode(GPIO02, INPUT_PULLUP);
-    attachInterrupt(GPIO02, reset_interrupt, FALLING);
+    pinMode(GPIO00, INPUT_PULLUP);
+    attachInterrupt(GPIO00, reset_interrupt, FALLING);
     
 #endif
     Logger.begin(2048);
@@ -164,7 +162,7 @@ void setup() {
 
         //-- Wait a minute to connect
         for(int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++) {
-            #ifdef ENABLE_DEBUG
+            #ifdef ENABLE_DEBUG 
             Serial.print(".");
             #endif
             delay(500);
