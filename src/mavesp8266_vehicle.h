@@ -56,6 +56,7 @@ public:
     int     sendMessage     (mavlink_message_t* message);
     int     sendMessageRaw   (uint8_t *buffer, int len);
     linkStatus* getStatus   ();
+    void    statusUpdate    ();
 
 protected:
     void    _sendRadioStatus();
@@ -68,6 +69,10 @@ private:
     unsigned long           _queue_time;
     float                   _buffer_status;
     mavlink_message_t       _message[UAS_QUEUE_SIZE];
+    unsigned long           _time_next_blink;           // Time at which the next change in the status light is due
+    int                     _wifi_status;               // Status of wifi - 0: No wifi, 1: Wifi Connected 2: HeartBeat detected
+    bool                    _led_state;                 // HIGH: True, LOW: False
+
 };
 
 #endif

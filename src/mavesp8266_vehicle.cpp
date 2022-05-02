@@ -39,7 +39,7 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
-
+#define GPIO4 4
 //---------------------------------------------------------------------------------
 MavESP8266Vehicle::MavESP8266Vehicle()
     : _queue_count(0)
@@ -67,6 +67,8 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
 #endif
     // raise serial buffer size (default is 256)
     Serial.setRxBufferSize(1024);
+
+    pinMode(GPIO4, OUTPUT);
 }
 
 //---------------------------------------------------------------------------------
@@ -256,3 +258,34 @@ MavESP8266Vehicle::_sendRadioStatus()
     sendMessage(&msg);
     _status.radio_status_sent++;
 }
+void 
+MavESP8266Vehicle::statusUpdate() {
+
+    // Wifi status update
+    if (WiFi.status() == WL_CONNECTED) {
+        _wifi_status = 1;
+        // If low, set high
+        if (!_led_state) {
+            digitalWrite(GPIO4, HIGH);
+        }
+    }
+    else {
+        _wifi_status = 0;
+        // If high, set low
+        if (_led_state) {
+            digitalWrite(GPIO4, LOW);
+        }
+    }
+    if (_heard_from) {
+        _wifi_status = 2;
+        if (millis() - _time_next_blink <= 0) {
+            if (_led_state) {
+                digitalWrite(GPIO4, LOW);
+            }
+            else {
+                digitalWrite(GPIO4, HIGH);
+            }
+            _time_next_blink = millis() + 1000;
+
+        }
+    }
