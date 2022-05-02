@@ -41,38 +41,38 @@
 #include "mavesp8266.h"
 
 //-- UDP Outgoing Packet Queue
-#define UAS_QUEUE_SIZE          60
-#define UAS_QUEUE_THRESHOLD     20
-#define UAS_QUEUE_TIMEOUT       5 // 5ms
+#define UAS_QUEUE_SIZE 60
+#define UAS_QUEUE_THRESHOLD 20
+#define UAS_QUEUE_TIMEOUT 5 // 5ms
 
-class MavESP8266Vehicle : public MavESP8266Bridge {
+class MavESP8266Vehicle : public MavESP8266Bridge
+{
 public:
     MavESP8266Vehicle();
 
-    void    begin           (MavESP8266Bridge* forwardTo);
-    void    readMessage     ();
-    void    readMessageRaw  ();
-    int     sendMessage     (mavlink_message_t* message, int count);
-    int     sendMessage     (mavlink_message_t* message);
-    int     sendMessageRaw   (uint8_t *buffer, int len);
-    linkStatus* getStatus   ();
-    void    statusUpdate    ();
+    void begin(MavESP8266Bridge *forwardTo);
+    void readMessage();
+    void readMessageRaw();
+    int sendMessage(mavlink_message_t *message, int count);
+    int sendMessage(mavlink_message_t *message);
+    int sendMessageRaw(uint8_t *buffer, int len);
+    linkStatus *getStatus();
+    void statusUpdate();
 
 protected:
-    void    _sendRadioStatus();
+    void _sendRadioStatus();
 
 private:
-    bool    _readMessage    ();
+    bool _readMessage();
 
 private:
-    int                     _queue_count;
-    unsigned long           _queue_time;
-    float                   _buffer_status;
-    mavlink_message_t       _message[UAS_QUEUE_SIZE];
-    unsigned long           _time_next_blink;           // Time at which the next change in the status light is due
-    int                     _wifi_status;               // Status of wifi - 0: No wifi, 1: Wifi Connected 2: HeartBeat detected
-    bool                    _led_state;                 // HIGH: True, LOW: False
-
+    int _queue_count;
+    unsigned long _queue_time;
+    float _buffer_status;
+    mavlink_message_t _message[UAS_QUEUE_SIZE];
+    unsigned long _time_next_blink; // Time at which the next change in the status light is due
+    int _wifi_status;               // Status of wifi - 0: No wifi, 1: Wifi Connected 2: HeartBeat detected
+    bool _led_state = false;        // HIGH: True, LOW: False
 };
 
 #endif
