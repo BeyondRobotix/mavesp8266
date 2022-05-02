@@ -41,6 +41,7 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_component.h"
+#include "mavesp8266_status.h"
 
 #include <ESP8266mDNS.h>
 
@@ -83,6 +84,7 @@ MavESP8266Vehicle       Vehicle;
 MavESP8266Httpd         updateServer;
 MavESP8266UpdateImp     updateStatus;
 MavESP8266Log           Logger;
+MavESP8266Status        Status;
 
 //---------------------------------------------------------------------------------
 //-- Accessors
@@ -132,6 +134,8 @@ void reset_interrupt(){
     ESP.reset();
 }
 
+
+
 //---------------------------------------------------------------------------------
 //-- Set things up
 void setup() {
@@ -145,6 +149,7 @@ void setup() {
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
     attachInterrupt(GPIO02, reset_interrupt, FALLING);
+    
 #endif
     Logger.begin(2048);
 
@@ -204,6 +209,7 @@ void setup() {
     Vehicle.begin(&GCS);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
+    Status.begin();
 }
 
 //---------------------------------------------------------------------------------
@@ -222,4 +228,5 @@ void loop() {
         }
     }
     updateServer.checkUpdates();
+    Status.statusUpdate();
 }

@@ -54,6 +54,7 @@ class MavESP8266Parameters;
 class MavESP8266Component;
 class MavESP8266Vehicle;
 class MavESP8266GCS;
+class MavESP8266Status;
 
 #define DEFAULT_UART_SPEED          921600
 #define DEFAULT_WIFI_CHANNEL        11
