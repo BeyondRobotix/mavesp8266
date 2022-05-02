@@ -39,7 +39,7 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
-#define GPIO00 0
+#define GPIO0 0
 //---------------------------------------------------------------------------------
 MavESP8266Vehicle::MavESP8266Vehicle()
     : _queue_count(0)
@@ -68,7 +68,7 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
     // raise serial buffer size (default is 256)
     Serial.setRxBufferSize(1024);
 
-    pinMode(GPIO4, OUTPUT);
+    pinMode(GPIO0, OUTPUT);
 }
 
 //---------------------------------------------------------------------------------
@@ -266,24 +266,24 @@ MavESP8266Vehicle::statusUpdate() {
     //     _wifi_status = 1;
     //     // If low, set high
     //     if (!_led_state) {
-    //         digitalWrite(GPIO00, HIGH);
+    //         digitalWrite(GPIO0, HIGH);
     //     }
     // }
     // else {
     //     _wifi_status = 0;
     //     // If high, set low
     //     if (_led_state) {
-    //         digitalWrite(GPIO00, LOW);
+    //         digitalWrite(GPIO0, LOW);
     //     }
     // }
     // if (_heard_from) {
     //     _wifi_status = 2;
     //     if (millis() - _time_next_blink <= 0) {
     //         if (_led_state) {
-    //             digitalWrite(GPIO00, LOW);
+    //             digitalWrite(GPIO0, LOW);
     //         }
     //         else {
-    //             digitalWrite(GPIO00, HIGH);
+    //             digitalWrite(GPIO0, HIGH);
     //         }
     //         _time_next_blink = millis() + 1000;
 
@@ -291,10 +291,10 @@ MavESP8266Vehicle::statusUpdate() {
     // }
      if (millis() - _time_next_blink <= 0) {
             if (_led_state) {
-                digitalWrite(GPIO00, LOW);
+                digitalWrite(GPIO0, LOW);
             }
             else {
-                digitalWrite(GPIO00, HIGH);
+                digitalWrite(GPIO0, HIGH);
             }
             _time_next_blink = millis() + 1000;
 
