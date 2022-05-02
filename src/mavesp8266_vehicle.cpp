@@ -289,14 +289,5 @@ MavESP8266Vehicle::statusUpdate() {
 
     //     }
     // }
-     if (millis() - _time_next_blink <= 0) {
-            if (_led_state) {
-                digitalWrite(GPIO0, LOW);
-            }
-            else {
-                digitalWrite(GPIO0, HIGH);
-            }
-            _time_next_blink = millis() + 1000;
-
-        }
+    digitalWrite(GPIO0, HIGH);
 }
