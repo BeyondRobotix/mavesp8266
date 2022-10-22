@@ -41,11 +41,9 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_component.h"
+#include "led_manager.h"
 
 #include <ESP8266mDNS.h>
-
-#define GPIO02 0
-
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
 class MavESP8266UpdateImp : public MavESP8266Update
@@ -82,6 +80,7 @@ MavESP8266Vehicle Vehicle;
 MavESP8266Httpd updateServer;
 MavESP8266UpdateImp updateStatus;
 MavESP8266Log Logger;
+LEDManager ledManager;
 
 //---------------------------------------------------------------------------------
 //-- Accessors
@@ -142,6 +141,10 @@ void setup()
 {
     delay(1000);
     Parameters.begin();
+    // set up pins for LEDs
+    pinMode(12, OUTPUT);
+    pinMode(4, OUTPUT);
+    pinMode(5, OUTPUT);
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
@@ -214,7 +217,7 @@ void setup()
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip[3] = 255;
     GCS.begin(&Vehicle, gcs_ip);
-    Vehicle.begin(&GCS);
+    Vehicle.begin(&GCS, ledManager);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
 }
@@ -240,4 +243,5 @@ void loop()
     }
     updateServer.checkUpdates();
     Vehicle.statusUpdate();
+    ledManager.blinkLED();
 }

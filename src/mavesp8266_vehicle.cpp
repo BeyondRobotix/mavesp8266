@@ -39,7 +39,7 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
-#define GPIO0 0
+#include "led_manager.h"
 //---------------------------------------------------------------------------------
 MavESP8266Vehicle::MavESP8266Vehicle()
     : _queue_count(0), _queue_time(0), _buffer_status(50.0)
@@ -48,11 +48,11 @@ MavESP8266Vehicle::MavESP8266Vehicle()
     _send_chan = MAVLINK_COMM_1;
     memset(_message, 0, sizeof(_message));
 }
-
 //---------------------------------------------------------------------------------
 //-- Initialize
-void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo)
+void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo, LEDManager ledManager)
 {
+    _ledManager = ledManager;
     MavESP8266Bridge::begin(forwardTo);
     //-- Start UART connected to UAS
     Serial.begin(getWorld()->getParameters()->getUartBaudRate());
@@ -65,9 +65,6 @@ void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo)
 #endif
     // raise serial buffer size (default is 256)
     Serial.setRxBufferSize(1024);
-
-    pinMode(GPIO0, OUTPUT);
-    _time_next_blink = 0;
 }
 
 //---------------------------------------------------------------------------------
@@ -282,7 +279,7 @@ void MavESP8266Vehicle::statusUpdate()
         // If low, set high
         if (!_led_state)
         {
-            digitalWrite(0, LOW);
+            // digitalWrite(4, HIGH);
             _led_state = true;
         }
     }
@@ -292,26 +289,32 @@ void MavESP8266Vehicle::statusUpdate()
         // If high, set low
         if (_led_state)
         {
-            digitalWrite(0, HIGH);
+            // digitalWrite(4, LOW);
             _led_state = false;
         }
     }
     if (_heard_from)
     {
         _wifi_status = 2;
-        if (_time_next_blink <= millis())
-        {
-            if (_led_state)
-            {
-                digitalWrite(0, LOW);
-                _led_state = false;
-            }
-            else
-            {
-                digitalWrite(0, HIGH);
-                _led_state = true;
-            }
-            _time_next_blink = millis() + 1000;
-        }
+
+        // _ledManager.setLED(_ledManager.air, _ledManager.blink);
+        // _ledManager.setLED(_ledManager.wifi, _ledManager.blink);
+        // _ledManager.setLED(_ledManager.gcs, _ledManager.blink);
+        // digitalWrite(5, HIGH);
+        //_led_state = true;
+        //  if (_time_next_blink <= millis())
+        //  {
+        //      if (_led_state)
+        //      {
+        //          digitalWrite(0, LOW);
+        //          _led_state = false;
+        //      }
+        //      else
+        //      {
+        //          digitalWrite(0, HIGH);
+        //          _led_state = true;
+        //      }
+        //      _time_next_blink = millis() + 1000;
+        //  }
     }
 }
