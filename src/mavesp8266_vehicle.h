@@ -72,7 +72,7 @@ private:
     mavlink_message_t _message[UAS_QUEUE_SIZE];
     unsigned long _time_next_blink; // Time at which the next change in the status light is due
     int _wifi_status;               // Status of wifi - 0: No wifi, 1: Wifi Connected 2: HeartBeat detected
-    bool _led_state = false;        // HIGH: True, LOW: False
+    bool _led_state = false;        // HIGH: False (LED off), LOW: True (LED on)
 };
 
 #endif

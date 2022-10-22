@@ -282,7 +282,7 @@ void MavESP8266Vehicle::statusUpdate()
         // If low, set high
         if (!_led_state)
         {
-            digitalWrite(0, HIGH);
+            digitalWrite(0, LOW);
             _led_state = true;
         }
     }
@@ -292,7 +292,7 @@ void MavESP8266Vehicle::statusUpdate()
         // If high, set low
         if (_led_state)
         {
-            digitalWrite(0, LOW);
+            digitalWrite(0, HIGH);
             _led_state = false;
         }
     }
