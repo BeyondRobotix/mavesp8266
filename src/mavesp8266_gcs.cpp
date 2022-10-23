@@ -109,6 +109,7 @@ bool MavESP8266GCS::_readMessage()
                     {
                         _ip = _udp.remoteIP();
                         getWorld()->getLogger()->log("Response from GCS. Setting GCS IP to: %s\n", _ip.toString().c_str());
+                        _ledManager.setLED(_ledManager.wifi, _ledManager.on);
                     }
                     //-- First packets
                     if (!_heard_from)
@@ -119,7 +120,6 @@ bool MavESP8266GCS::_readMessage()
                             //-- We no longer need DHCP
                             if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP)
                             {
-                                _ledManager.setLED(_ledManager.wifi, _ledManager.on);
                                 wifi_softap_dhcps_stop();
                             }
                             _heard_from = true;
@@ -174,6 +174,7 @@ bool MavESP8266GCS::_readMessage()
                 _ledManager.setLED(_ledManager.wifi, _ledManager.off);
                 wifi_softap_dhcps_start();
             }
+            _ledManager.setLED(_ledManager.wifi, _ledManager.blink);
             _heard_from = false;
             _ip[3] = 255;
             getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
