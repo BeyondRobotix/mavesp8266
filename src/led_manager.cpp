@@ -26,8 +26,6 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
                 _gcsValue = HIGH;
                 break;
             default:
-                digitalWrite(gcs, LOW);
-                _gcsValue = LOW;
                 break;
             }
         }
@@ -46,9 +44,10 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
                 digitalWrite(wifi, HIGH);
                 _wifiValue = HIGH;
                 break;
-            default:
+            case doubleBlink:
                 digitalWrite(wifi, LOW);
                 _wifiValue = LOW;
+            default:
                 break;
             }
         }
@@ -67,8 +66,6 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
                 digitalWrite(air, HIGH);
                 _airValue = HIGH;
             default:
-                digitalWrite(air, LOW);
-                _airValue = LOW;
                 break;
             }
         }
