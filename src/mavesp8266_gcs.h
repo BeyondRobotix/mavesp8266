@@ -39,31 +39,35 @@
 #define MAVESP8266_GCS_H
 
 #include "mavesp8266.h"
+#include "led_manager.h"
 
-class MavESP8266GCS : public MavESP8266Bridge {
+class MavESP8266GCS : public MavESP8266Bridge
+{
 public:
     MavESP8266GCS();
 
-    void    begin                   (MavESP8266Bridge* forwardTo, IPAddress gcsIP);
-    void    readMessage             ();
-    void    readMessageRaw          ();
-    int     sendMessage             (mavlink_message_t* message, int count);
-    int     sendMessage             (mavlink_message_t* message);
-    int     sendMessageRaw           (uint8_t *buffer, int len);
+    void begin(MavESP8266Bridge *forwardTo, IPAddress gcsIP, LEDManager ledManager);
+    void readMessage();
+    void readMessageRaw();
+    int sendMessage(mavlink_message_t *message, int count);
+    int sendMessage(mavlink_message_t *message);
+    int sendMessageRaw(uint8_t *buffer, int len);
+
 protected:
-    void    _sendRadioStatus        ();
+    void _sendRadioStatus();
 
 private:
-    bool    _readMessage            ();
-    void    _sendSingleUdpMessage   (mavlink_message_t* msg);
-    void    _checkUdpErrors         (mavlink_message_t* msg);
+    bool _readMessage();
+    void _sendSingleUdpMessage(mavlink_message_t *msg);
+    void _checkUdpErrors(mavlink_message_t *msg);
 
 private:
-    WiFiUDP             _udp;
-    IPAddress           _ip;
-    uint16_t            _udp_port;
-    mavlink_message_t   _message;
-    unsigned long       _last_status_time;
+    WiFiUDP _udp;
+    IPAddress _ip;
+    uint16_t _udp_port;
+    mavlink_message_t _message;
+    unsigned long _last_status_time;
+    LEDManager _ledManager;
 };
 
 #endif

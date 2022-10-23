@@ -199,6 +199,7 @@ bool MavESP8266Vehicle::_readMessage()
                 {
                     if (_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT)
                     {
+                        _ledManager.setLED(_ledManager.air, _ledManager.on);
                         _heard_from = true;
                         _component_id = _message[_queue_count].compid;
                         _system_id = _message[_queue_count].sysid;
@@ -239,6 +240,7 @@ bool MavESP8266Vehicle::_readMessage()
     {
         if (_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT)
         {
+            _ledManager.setLED(_ledManager.air, _ledManager.blink);
             _heard_from = false;
             getWorld()->getLogger()->log("Heartbeat timeout from Vehicle\n");
         }
@@ -268,53 +270,4 @@ void MavESP8266Vehicle::_sendRadioStatus()
     );
     sendMessage(&msg);
     _status.radio_status_sent++;
-}
-void MavESP8266Vehicle::statusUpdate()
-{
-
-    // Wifi status update
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        _wifi_status = 1;
-        // If low, set high
-        if (!_led_state)
-        {
-            // digitalWrite(4, HIGH);
-            _led_state = true;
-        }
-    }
-    else
-    {
-        _wifi_status = 0;
-        // If high, set low
-        if (_led_state)
-        {
-            // digitalWrite(4, LOW);
-            _led_state = false;
-        }
-    }
-    if (_heard_from)
-    {
-        _wifi_status = 2;
-
-        // _ledManager.setLED(_ledManager.air, _ledManager.blink);
-        // _ledManager.setLED(_ledManager.wifi, _ledManager.blink);
-        // _ledManager.setLED(_ledManager.gcs, _ledManager.blink);
-        // digitalWrite(5, HIGH);
-        //_led_state = true;
-        //  if (_time_next_blink <= millis())
-        //  {
-        //      if (_led_state)
-        //      {
-        //          digitalWrite(0, LOW);
-        //          _led_state = false;
-        //      }
-        //      else
-        //      {
-        //          digitalWrite(0, HIGH);
-        //          _led_state = true;
-        //      }
-        //      _time_next_blink = millis() + 1000;
-        //  }
-    }
 }

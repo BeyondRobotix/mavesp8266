@@ -39,6 +39,7 @@
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
+#include "led_manager.h"
 
 //---------------------------------------------------------------------------------
 MavESP8266GCS::MavESP8266GCS()
@@ -51,8 +52,9 @@ MavESP8266GCS::MavESP8266GCS()
 
 //---------------------------------------------------------------------------------
 //-- Initialize
-void MavESP8266GCS::begin(MavESP8266Bridge *forwardTo, IPAddress gcsIP)
+void MavESP8266GCS::begin(MavESP8266Bridge *forwardTo, IPAddress gcsIP, LEDManager ledManager)
 {
+    _ledManager = ledManager;
     MavESP8266Bridge::begin(forwardTo);
     _ip = gcsIP;
     //-- Init variables that shouldn't change unless we reboot
@@ -114,6 +116,7 @@ bool MavESP8266GCS::_readMessage()
                     {
                         if (_message.msgid == MAVLINK_MSG_ID_HEARTBEAT)
                         {
+                            _ledManager.setLED(_ledManager.gcs, _ledManager.on);
                             //-- We no longer need DHCP
                             if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP)
                             {
@@ -161,6 +164,7 @@ bool MavESP8266GCS::_readMessage()
     {
         if (_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT)
         {
+            _ledManager.setLED(_ledManager.gcs, _ledManager.blink);
             //-- Restart DHCP and start broadcasting again
             if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP)
             {

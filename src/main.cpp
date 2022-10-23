@@ -123,6 +123,7 @@ void wait_for_client()
         delay(1000);
         client_count = wifi_softap_get_station_num();
     }
+    ledManager.setLED(ledManager.wifi, ledManager.on);
     DEBUG_LOG("Got %d client(s)\n", client_count);
 }
 
@@ -166,6 +167,7 @@ void setup()
     if (Parameters.getWifiMode() == WIFI_MODE_STA)
     {
         //-- Connect to an existing network
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
         WiFi.mode(WIFI_STA);
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
@@ -180,6 +182,7 @@ void setup()
         }
         if (WiFi.status() == WL_CONNECTED)
         {
+            ledManager.setLED(ledManager.wifi, ledManager.on);
             localIP = WiFi.localIP();
             WiFi.setAutoReconnect(true);
         }
@@ -194,6 +197,7 @@ void setup()
     if (Parameters.getWifiMode() == WIFI_MODE_AP)
     {
         //-- Start AP
+        ledManager.setLED(ledManager.wifi, ledManager.off);
         WiFi.mode(WIFI_AP);
         WiFi.encryptionType(AUTH_WPA2_PSK);
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
@@ -216,7 +220,7 @@ void setup()
     IPAddress gcs_ip(localIP);
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip[3] = 255;
-    GCS.begin(&Vehicle, gcs_ip);
+    GCS.begin(&Vehicle, gcs_ip, ledManager);
     Vehicle.begin(&GCS, ledManager);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
@@ -242,6 +246,5 @@ void loop()
         }
     }
     updateServer.checkUpdates();
-    Vehicle.statusUpdate();
     ledManager.blinkLED();
 }
