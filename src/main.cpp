@@ -75,8 +75,8 @@ private:
 IPAddress localIP;
 MavESP8266Component Component;
 MavESP8266Parameters Parameters;
-MavESP8266GCS GCS;
-MavESP8266Vehicle Vehicle;
+MavESP8266GCS GCS(ledManager);
+MavESP8266Vehicle Vehicle(ledManager);
 MavESP8266Httpd updateServer;
 MavESP8266UpdateImp updateStatus;
 MavESP8266Log Logger;
@@ -220,8 +220,8 @@ void setup()
     IPAddress gcs_ip(localIP);
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip[3] = 255;
-    GCS.begin(&Vehicle, gcs_ip, ledManager);
-    Vehicle.begin(&GCS, ledManager);
+    GCS.begin(&Vehicle, gcs_ip);
+    Vehicle.begin(&GCS);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
 }

@@ -41,22 +41,22 @@
 #include "mavesp8266_component.h"
 #include "led_manager.h"
 //---------------------------------------------------------------------------------
-MavESP8266Vehicle::MavESP8266Vehicle()
-    : _queue_count(0), _queue_time(0), _buffer_status(50.0)
+MavESP8266Vehicle::MavESP8266Vehicle(LEDManager &ledManager)
+    : _queue_count(0), _queue_time(0), _buffer_status(50.0), _ledManager(ledManager)
 {
+    _ledManager = ledManager;
     _recv_chan = MAVLINK_COMM_0;
     _send_chan = MAVLINK_COMM_1;
     memset(_message, 0, sizeof(_message));
 }
 //---------------------------------------------------------------------------------
 //-- Initialize
-void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo, LEDManager &ledManager)
+void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo)
 {
-    _ledManager = ledManager;
     MavESP8266Bridge::begin(forwardTo);
     //-- Start UART connected to UAS
     Serial.begin(getWorld()->getParameters()->getUartBaudRate());
-//-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
+    //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
 #define ARDUINO_ESP8266_ESP12
 #ifdef ENABLE_DEBUG
 #ifdef ARDUINO_ESP8266_ESP12

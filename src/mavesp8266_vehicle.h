@@ -49,8 +49,8 @@
 class MavESP8266Vehicle : public MavESP8266Bridge
 {
 public:
-    MavESP8266Vehicle();
-    void begin(MavESP8266Bridge *forwardTo, LEDManager &ledManager);
+    MavESP8266Vehicle(LEDManager &ledManager);
+    void begin(MavESP8266Bridge *forwardTo);
     void readMessage();
     void readMessageRaw();
     int sendMessage(mavlink_message_t *message, int count);
@@ -63,7 +63,7 @@ protected:
 
 private:
     bool _readMessage();
-    LEDManager _ledManager;
+    LEDManager &_ledManager;
 
 private:
     int _queue_count;

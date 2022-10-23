@@ -42,8 +42,8 @@
 #include "led_manager.h"
 
 //---------------------------------------------------------------------------------
-MavESP8266GCS::MavESP8266GCS()
-    : _udp_port(DEFAULT_UDP_HPORT)
+MavESP8266GCS::MavESP8266GCS(LEDManager &ledManager)
+    : _udp_port(DEFAULT_UDP_HPORT), _ledManager(ledManager)
 {
     _recv_chan = MAVLINK_COMM_1;
     _send_chan = MAVLINK_COMM_0;
@@ -52,9 +52,8 @@ MavESP8266GCS::MavESP8266GCS()
 
 //---------------------------------------------------------------------------------
 //-- Initialize
-void MavESP8266GCS::begin(MavESP8266Bridge *forwardTo, IPAddress gcsIP, LEDManager &ledManager)
+void MavESP8266GCS::begin(MavESP8266Bridge *forwardTo, IPAddress gcsIP)
 {
-    _ledManager = ledManager;
     MavESP8266Bridge::begin(forwardTo);
     _ip = gcsIP;
     //-- Init variables that shouldn't change unless we reboot
