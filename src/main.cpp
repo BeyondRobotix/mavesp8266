@@ -72,6 +72,7 @@ private:
 };
 
 //-- Singletons
+LEDManager ledManager;
 IPAddress localIP;
 MavESP8266Component Component;
 MavESP8266Parameters Parameters;
@@ -80,7 +81,6 @@ MavESP8266Vehicle Vehicle(ledManager);
 MavESP8266Httpd updateServer;
 MavESP8266UpdateImp updateStatus;
 MavESP8266Log Logger;
-LEDManager ledManager;
 
 //---------------------------------------------------------------------------------
 //-- Accessors
@@ -120,6 +120,7 @@ void wait_for_client()
             Serial1.println();
         }
 #endif
+        // ledManager.blinkLED();
         delay(1000);
         client_count = wifi_softap_get_station_num();
     }
@@ -149,8 +150,8 @@ void setup()
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
-    Serial.begin(115200);
-    Serial.print("test");
+    // Serial.begin(115200);
+    // Serial.print("test");
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
@@ -178,6 +179,7 @@ void setup()
 #ifdef ENABLE_DEBUG
             Serial.print(".");
 #endif
+            ledManager.blinkLED();
             delay(500);
         }
         if (WiFi.status() == WL_CONNECTED)
