@@ -76,7 +76,8 @@ void LEDManager::blinkLED()
 {
     if (millis() >= _timeNextBlink)
     {
-        _timeNextBlink = millis() + 1000;
+        _doubleBlinkFlag = !_doubleBlinkFlag;
+        _timeNextBlink = millis() + _cycleTime;
         if (_gcsLedStatus == blink)
         {
             _gcsValue = !_gcsValue;
@@ -91,6 +92,30 @@ void LEDManager::blinkLED()
         {
             _airValue = !_airValue;
             digitalWrite(air, _airValue);
+        }
+    }
+}
+
+// double blink on for 200, off for 200, on for 200, off for 600
+
+void LEDManager::doubleBlinkLED()
+{
+    if (millis() >= _timeNextDoubleBlink && _doubleBlinkFlag)
+    {
+        _timeNextDoubleBlink = millis() + (_cycleTime / 3);
+        if (_wifiLedStatus == doubleBlink)
+        {
+            _wifiValue = !_wifiValue;
+            digitalWrite(wifi, _wifiValue);
+        }
+    }
+    else if (millis() >= _timeNextDoubleBlink && !_doubleBlinkFlag)
+    {
+        _timeNextDoubleBlink = millis() + _cycleTime;
+        if (_wifiLedStatus == doubleBlink)
+        {
+            _wifiValue = !_wifiValue;
+            digitalWrite(wifi, _wifiValue);
         }
     }
 }
