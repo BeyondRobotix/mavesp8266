@@ -116,6 +116,7 @@ void LEDManager::doubleBlinkLED()
     }
     else if (millis() >= _timeNextDoubleBlink)
     {
+        _doubleBlinkCount = 0;
         _timeNextDoubleBlink = millis() + _cycleTime;
         if (_wifiLedStatus == doubleBlink)
         {
