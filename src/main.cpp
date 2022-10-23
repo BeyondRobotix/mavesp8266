@@ -41,11 +41,9 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_component.h"
+#include "led_manager.h"
 
 #include <ESP8266mDNS.h>
-
-#define GPIO02 0
-
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
 class MavESP8266UpdateImp : public MavESP8266Update
@@ -74,11 +72,12 @@ private:
 };
 
 //-- Singletons
+LEDManager ledManager;
 IPAddress localIP;
 MavESP8266Component Component;
 MavESP8266Parameters Parameters;
-MavESP8266GCS GCS;
-MavESP8266Vehicle Vehicle;
+MavESP8266GCS GCS(ledManager);
+MavESP8266Vehicle Vehicle(ledManager);
 MavESP8266Httpd updateServer;
 MavESP8266UpdateImp updateStatus;
 MavESP8266Log Logger;
@@ -121,10 +120,35 @@ void wait_for_client()
             Serial1.println();
         }
 #endif
-        delay(1000);
+        ledManager.doubleBlinkLED();
+        delay(200);
         client_count = wifi_softap_get_station_num();
     }
+    ledManager.setLED(ledManager.wifi, ledManager.on);
+    ledManager.setLED(ledManager.gcs, ledManager.blink);
+    ledManager.setLED(ledManager.air, ledManager.blink);
     DEBUG_LOG("Got %d client(s)\n", client_count);
+}
+
+void check_wifi_connected()
+{
+    if (Parameters.getWifiMode() == WIFI_MODE_AP && !wifi_softap_get_station_num())
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
+    }
+    else if (Parameters.getWifiMode() == WIFI_MODE_AP)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.on);
+    }
+
+    if (Parameters.getWifiMode() == WIFI_MODE_STA && WiFi.status() != WL_CONNECTED)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
+    }
+    else if (Parameters.getWifiMode() == WIFI_MODE_STA && WiFi.status() == WL_CONNECTED)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.on);
+    }
 }
 
 //---------------------------------------------------------------------------------
@@ -142,11 +166,15 @@ void setup()
 {
     delay(1000);
     Parameters.begin();
+    // set up pins for LEDs
+    pinMode(12, OUTPUT);
+    pinMode(4, OUTPUT);
+    pinMode(5, OUTPUT);
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
-    Serial.begin(115200);
-    Serial.print("test");
+    // Serial.begin(115200);
+    // Serial.print("test");
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
@@ -163,6 +191,7 @@ void setup()
     if (Parameters.getWifiMode() == WIFI_MODE_STA)
     {
         //-- Connect to an existing network
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
         WiFi.mode(WIFI_STA);
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
@@ -173,10 +202,14 @@ void setup()
 #ifdef ENABLE_DEBUG
             Serial.print(".");
 #endif
+            ledManager.blinkLED();
             delay(500);
         }
         if (WiFi.status() == WL_CONNECTED)
         {
+            ledManager.setLED(ledManager.wifi, ledManager.on);
+            ledManager.setLED(ledManager.gcs, ledManager.blink);
+            ledManager.setLED(ledManager.air, ledManager.blink);
             localIP = WiFi.localIP();
             WiFi.setAutoReconnect(true);
         }
@@ -191,6 +224,7 @@ void setup()
     if (Parameters.getWifiMode() == WIFI_MODE_AP)
     {
         //-- Start AP
+        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
         WiFi.mode(WIFI_AP);
         WiFi.encryptionType(AUTH_WPA2_PSK);
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
@@ -225,6 +259,7 @@ void loop()
 {
     if (!updateStatus.isUpdating())
     {
+        check_wifi_connected();
         if (Component.inRawMode())
         {
             GCS.readMessageRaw();
@@ -239,5 +274,6 @@ void loop()
         }
     }
     updateServer.checkUpdates();
-    Vehicle.statusUpdate();
+    ledManager.blinkLED();
+    ledManager.doubleBlinkLED();
 }

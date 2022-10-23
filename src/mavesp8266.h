@@ -93,7 +93,6 @@ struct linkStatus
     uint32_t radio_status_sent;
     uint8_t queue_status;
 };
-
 //---------------------------------------------------------------------------------
 //-- Base Comm Link
 class MavESP8266Bridge

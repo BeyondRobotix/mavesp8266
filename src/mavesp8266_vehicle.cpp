@@ -39,16 +39,15 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
-#define GPIO0 0
+#include "led_manager.h"
 //---------------------------------------------------------------------------------
-MavESP8266Vehicle::MavESP8266Vehicle()
-    : _queue_count(0), _queue_time(0), _buffer_status(50.0)
+MavESP8266Vehicle::MavESP8266Vehicle(LEDManager &ledManager)
+    : _queue_count(0), _queue_time(0), _buffer_status(50.0), _ledManager(ledManager)
 {
     _recv_chan = MAVLINK_COMM_0;
     _send_chan = MAVLINK_COMM_1;
     memset(_message, 0, sizeof(_message));
 }
-
 //---------------------------------------------------------------------------------
 //-- Initialize
 void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo)
@@ -56,7 +55,7 @@ void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo)
     MavESP8266Bridge::begin(forwardTo);
     //-- Start UART connected to UAS
     Serial.begin(getWorld()->getParameters()->getUartBaudRate());
-//-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
+    //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
 #define ARDUINO_ESP8266_ESP12
 #ifdef ENABLE_DEBUG
 #ifdef ARDUINO_ESP8266_ESP12
@@ -65,9 +64,6 @@ void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo)
 #endif
     // raise serial buffer size (default is 256)
     Serial.setRxBufferSize(1024);
-
-    pinMode(GPIO0, OUTPUT);
-    _time_next_blink = 0;
 }
 
 //---------------------------------------------------------------------------------
@@ -202,6 +198,7 @@ bool MavESP8266Vehicle::_readMessage()
                 {
                     if (_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT)
                     {
+                        _ledManager.setLED(_ledManager.air, _ledManager.on);
                         _heard_from = true;
                         _component_id = _message[_queue_count].compid;
                         _system_id = _message[_queue_count].sysid;
@@ -212,8 +209,10 @@ bool MavESP8266Vehicle::_readMessage()
                 else
                 {
                     if (_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT)
+                    {
                         _last_heartbeat = millis();
-                    _checkLinkErrors(&_message[_queue_count]);
+                        _checkLinkErrors(&_message[_queue_count]);
+                    }
                 }
 
                 if (msgReceived == MAVLINK_FRAMING_BAD_CRC ||
@@ -242,6 +241,7 @@ bool MavESP8266Vehicle::_readMessage()
     {
         if (_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT)
         {
+            _ledManager.setLED(_ledManager.air, _ledManager.blink);
             _heard_from = false;
             getWorld()->getLogger()->log("Heartbeat timeout from Vehicle\n");
         }
@@ -271,47 +271,4 @@ void MavESP8266Vehicle::_sendRadioStatus()
     );
     sendMessage(&msg);
     _status.radio_status_sent++;
-}
-void MavESP8266Vehicle::statusUpdate()
-{
-
-    // Wifi status update
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        _wifi_status = 1;
-        // If low, set high
-        if (!_led_state)
-        {
-            digitalWrite(0, LOW);
-            _led_state = true;
-        }
-    }
-    else
-    {
-        _wifi_status = 0;
-        // If high, set low
-        if (_led_state)
-        {
-            digitalWrite(0, HIGH);
-            _led_state = false;
-        }
-    }
-    if (_heard_from)
-    {
-        _wifi_status = 2;
-        if (_time_next_blink <= millis())
-        {
-            if (_led_state)
-            {
-                digitalWrite(0, LOW);
-                _led_state = false;
-            }
-            else
-            {
-                digitalWrite(0, HIGH);
-                _led_state = true;
-            }
-            _time_next_blink = millis() + 1000;
-        }
-    }
 }
