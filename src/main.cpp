@@ -105,6 +105,7 @@ MavESP8266World *getWorld()
 //-- Wait for a DHCPD client
 void wait_for_client()
 {
+    ledManager.setLED(ledManager.wifi, ledManager.off);
     DEBUG_LOG("Waiting for a client...\n");
 #ifdef ENABLE_DEBUG
     int wcount = 0;
@@ -234,6 +235,11 @@ void loop()
 {
     if (!updateStatus.isUpdating())
     {
+        if (Parameters.getWifiMode() == WIFI_MODE_AP && !wifi_softap_get_station_num())
+        {
+            wait_for_client();
+        }
+
         if (Component.inRawMode())
         {
             GCS.readMessageRaw();

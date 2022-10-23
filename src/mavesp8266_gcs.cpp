@@ -81,18 +81,18 @@ void MavESP8266GCS::readMessage()
         _last_status_time = millis();
     }
 
-    if (!_heard_from && (millis() - _last_status_time > 1000))
-    {
-        delay(0);
-        if ((getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP))
-        {
-            _ledManager.setLED(_ledManager.wifi, _ledManager.off);
-        }
-        else
-        {
-            _ledManager.setLED(_ledManager.wifi, _ledManager.blink);
-        }
-    }
+    // if (!_heard_from && (millis() - _last_status_time > 1000))
+    // {
+    //     delay(0);
+    //     if ((getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP))
+    //     {
+    //         _ledManager.setLED(_ledManager.wifi, _ledManager.off);
+    //     }
+    //     else
+    //     {
+    //         _ledManager.setLED(_ledManager.wifi, _ledManager.blink);
+    //     }
+    // }
 }
 
 //---------------------------------------------------------------------------------
@@ -184,10 +184,10 @@ bool MavESP8266GCS::_readMessage()
             //-- Restart DHCP and start broadcasting again
             if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP)
             {
-                _ledManager.setLED(_ledManager.wifi, _ledManager.off);
+                //_ledManager.setLED(_ledManager.wifi, _ledManager.off);
                 wifi_softap_dhcps_start();
             }
-            _ledManager.setLED(_ledManager.wifi, _ledManager.blink);
+            //_ledManager.setLED(_ledManager.wifi, _ledManager.blink);
             _heard_from = false;
             _ip[3] = 255;
             getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
