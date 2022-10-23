@@ -80,6 +80,19 @@ void MavESP8266GCS::readMessage()
         _sendRadioStatus();
         _last_status_time = millis();
     }
+
+    if (!_heard_from && (millis() - _last_status_time > 1000))
+    {
+        delay(0);
+        if ((getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP))
+        {
+            _ledManager.setLED(_ledManager.wifi, _ledManager.off);
+        }
+        else
+        {
+            _ledManager.setLED(_ledManager.wifi, _ledManager.blink);
+        }
+    }
 }
 
 //---------------------------------------------------------------------------------
