@@ -132,8 +132,11 @@ bool MavESP8266GCS::_readMessage()
                     else
                     {
                         if (_message.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+                        {
+                            _ledManager.setLED(_ledManager.gcs, _ledManager.on);
                             _last_heartbeat = millis();
-                        _checkLinkErrors(&_message);
+                            _checkLinkErrors(&_message);
+                        }
                     }
 
                     if (msgReceived == MAVLINK_FRAMING_BAD_CRC ||
