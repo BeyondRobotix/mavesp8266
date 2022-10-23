@@ -63,12 +63,12 @@ protected:
 
 private:
     bool _readMessage();
-    LEDManager &_ledManager;
 
 private:
     int _queue_count;
     unsigned long _queue_time;
     float _buffer_status;
+    LEDManager &_ledManager;
     mavlink_message_t _message[UAS_QUEUE_SIZE];
 };
 

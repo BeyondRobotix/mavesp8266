@@ -127,6 +127,7 @@ void wait_for_client()
     }
     ledManager.setLED(ledManager.wifi, ledManager.on);
     ledManager.setLED(ledManager.gcs, ledManager.blink);
+    ledManager.setLED(ledManager.air, ledManager.blink);
     DEBUG_LOG("Got %d client(s)\n", client_count);
 }
 
@@ -209,6 +210,7 @@ void setup()
         {
             ledManager.setLED(ledManager.wifi, ledManager.on);
             ledManager.setLED(ledManager.gcs, ledManager.blink);
+            ledManager.setLED(ledManager.air, ledManager.blink);
             localIP = WiFi.localIP();
             WiFi.setAutoReconnect(true);
         }

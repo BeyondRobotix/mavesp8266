@@ -44,7 +44,6 @@
 MavESP8266Vehicle::MavESP8266Vehicle(LEDManager &ledManager)
     : _queue_count(0), _queue_time(0), _buffer_status(50.0), _ledManager(ledManager)
 {
-    _ledManager = ledManager;
     _recv_chan = MAVLINK_COMM_0;
     _send_chan = MAVLINK_COMM_1;
     memset(_message, 0, sizeof(_message));
