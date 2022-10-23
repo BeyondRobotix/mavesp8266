@@ -119,6 +119,7 @@ bool MavESP8266GCS::_readMessage()
                             //-- We no longer need DHCP
                             if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP)
                             {
+                                _ledManager.setLED(_ledManager.wifi, _ledManager.on);
                                 wifi_softap_dhcps_stop();
                             }
                             _heard_from = true;
@@ -170,6 +171,7 @@ bool MavESP8266GCS::_readMessage()
             //-- Restart DHCP and start broadcasting again
             if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP)
             {
+                _ledManager.setLED(_ledManager.wifi, _ledManager.off);
                 wifi_softap_dhcps_start();
             }
             _heard_from = false;
