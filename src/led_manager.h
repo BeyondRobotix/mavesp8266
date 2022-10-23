@@ -25,9 +25,9 @@ public:
 private:
     unsigned long _timeNextBlink = 0; // Time at which the next change in the status light is due
     bool _ledsToBlink = false;
-    LedStatus _gcsLedStatus = blink;
+    LedStatus _gcsLedStatus = off;
     LedStatus _wifiLedStatus = off;
-    LedStatus _airLedStatus = blink;
+    LedStatus _airLedStatus = off;
     int _gcsValue = LOW;
     int _wifiValue = LOW;
     int _airValue = LOW;

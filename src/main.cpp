@@ -126,7 +126,29 @@ void wait_for_client()
         client_count = wifi_softap_get_station_num();
     }
     ledManager.setLED(ledManager.wifi, ledManager.on);
+    ledManager.setLED(ledManager.gcs, ledManager.blink);
     DEBUG_LOG("Got %d client(s)\n", client_count);
+}
+
+void check_wifi_connected()
+{
+    if (Parameters.getWifiMode() == WIFI_MODE_AP && !wifi_softap_get_station_num())
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
+    }
+    else if (Parameters.getWifiMode() == WIFI_MODE_AP)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.on);
+    }
+
+    if (Parameters.getWifiMode() == WIFI_MODE_STA && WiFi.status() != WL_CONNECTED)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
+    }
+    else if (Parameters.getWifiMode() == WIFI_MODE_STA && WiFi.status() == WL_CONNECTED)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.on);
+    }
 }
 
 //---------------------------------------------------------------------------------
@@ -186,6 +208,7 @@ void setup()
         if (WiFi.status() == WL_CONNECTED)
         {
             ledManager.setLED(ledManager.wifi, ledManager.on);
+            ledManager.setLED(ledManager.gcs, ledManager.blink);
             localIP = WiFi.localIP();
             WiFi.setAutoReconnect(true);
         }
@@ -235,11 +258,7 @@ void loop()
 {
     if (!updateStatus.isUpdating())
     {
-        if (Parameters.getWifiMode() == WIFI_MODE_AP && !wifi_softap_get_station_num())
-        {
-            wait_for_client();
-        }
-
+        check_wifi_connected();
         if (Component.inRawMode())
         {
             GCS.readMessageRaw();

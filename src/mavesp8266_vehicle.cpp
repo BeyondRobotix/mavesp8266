@@ -211,7 +211,6 @@ bool MavESP8266Vehicle::_readMessage()
                 {
                     if (_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT)
                     {
-                        //_ledManager.setLED(_ledManager.air, _ledManager.on);
                         _last_heartbeat = millis();
                         _checkLinkErrors(&_message[_queue_count]);
                     }
