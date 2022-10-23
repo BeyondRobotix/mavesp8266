@@ -105,7 +105,6 @@ MavESP8266World *getWorld()
 //-- Wait for a DHCPD client
 void wait_for_client()
 {
-    ledManager.setLED(ledManager.wifi, ledManager.off);
     DEBUG_LOG("Waiting for a client...\n");
 #ifdef ENABLE_DEBUG
     int wcount = 0;
@@ -121,8 +120,8 @@ void wait_for_client()
             Serial1.println();
         }
 #endif
-        // ledManager.blinkLED();
-        delay(1000);
+        ledManager.doubleBlinkLED();
+        delay(200);
         client_count = wifi_softap_get_station_num();
     }
     ledManager.setLED(ledManager.wifi, ledManager.on);
@@ -135,7 +134,7 @@ void check_wifi_connected()
 {
     if (Parameters.getWifiMode() == WIFI_MODE_AP && !wifi_softap_get_station_num())
     {
-        ledManager.setLED(ledManager.wifi, ledManager.blink);
+        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
     }
     else if (Parameters.getWifiMode() == WIFI_MODE_AP)
     {
@@ -225,7 +224,7 @@ void setup()
     if (Parameters.getWifiMode() == WIFI_MODE_AP)
     {
         //-- Start AP
-        ledManager.setLED(ledManager.wifi, ledManager.off);
+        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
         WiFi.mode(WIFI_AP);
         WiFi.encryptionType(AUTH_WPA2_PSK);
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
@@ -276,4 +275,5 @@ void loop()
     }
     updateServer.checkUpdates();
     ledManager.blinkLED();
+    ledManager.doubleBlinkLED();
 }

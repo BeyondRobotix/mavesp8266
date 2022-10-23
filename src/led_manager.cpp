@@ -25,7 +25,9 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
                 digitalWrite(gcs, HIGH);
                 _gcsValue = HIGH;
                 break;
-            case blink:
+            default:
+                digitalWrite(gcs, LOW);
+                _gcsValue = LOW;
                 break;
             }
         }
@@ -44,7 +46,9 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
                 digitalWrite(wifi, HIGH);
                 _wifiValue = HIGH;
                 break;
-            case blink:
+            default:
+                digitalWrite(wifi, LOW);
+                _wifiValue = LOW;
                 break;
             }
         }
@@ -62,8 +66,9 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
             case on:
                 digitalWrite(air, HIGH);
                 _airValue = HIGH;
-                break;
-            case blink:
+            default:
+                digitalWrite(air, LOW);
+                _airValue = LOW;
                 break;
             }
         }
@@ -76,7 +81,7 @@ void LEDManager::blinkLED()
 {
     if (millis() >= _timeNextBlink)
     {
-        _timeNextBlink = millis() + 1000;
+        _timeNextBlink = millis() + _cycleTime;
         if (_gcsLedStatus == blink)
         {
             _gcsValue = !_gcsValue;
@@ -91,6 +96,32 @@ void LEDManager::blinkLED()
         {
             _airValue = !_airValue;
             digitalWrite(air, _airValue);
+        }
+    }
+}
+
+// double blink on for 200, off for 200, on for 200, off for 600
+
+void LEDManager::doubleBlinkLED()
+{
+    if (millis() >= _timeNextDoubleBlink && _doubleBlinkCount < 3)
+    {
+        _doubleBlinkCount++;
+        _timeNextDoubleBlink = millis() + (_cycleTime / 3);
+        if (_wifiLedStatus == doubleBlink)
+        {
+            _wifiValue = !_wifiValue;
+            digitalWrite(wifi, _wifiValue);
+        }
+    }
+    else if (millis() >= _timeNextDoubleBlink)
+    {
+        _doubleBlinkCount = 0;
+        _timeNextDoubleBlink = millis() + _cycleTime;
+        if (_wifiLedStatus == doubleBlink)
+        {
+            _wifiValue = !_wifiValue;
+            digitalWrite(wifi, _wifiValue);
         }
     }
 }

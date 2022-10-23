@@ -16,14 +16,16 @@ public:
     {
         off,
         on,
-        blink
+        blink,
+        doubleBlink
     };
-    // void begin(MavESP8266Bridge *bridge);
     void setLED(Led selectedLed, LedStatus status);
     void blinkLED();
+    void doubleBlinkLED();
 
 private:
-    unsigned long _timeNextBlink = 0; // Time at which the next change in the status light is due
+    unsigned long _timeNextBlink = 0;       // Time at which the next change in the status light is due
+    unsigned long _timeNextDoubleBlink = 0; // Time at which the next double blink is due
     bool _ledsToBlink = false;
     LedStatus _gcsLedStatus = off;
     LedStatus _wifiLedStatus = off;
@@ -31,5 +33,8 @@ private:
     int _gcsValue = LOW;
     int _wifiValue = LOW;
     int _airValue = LOW;
+    int _cycleTime = 600;
+    // bool _doubleBlinkFlag = false;
+    int _doubleBlinkCount = 0;
 };
 #endif
