@@ -50,7 +50,7 @@ MavESP8266Vehicle::MavESP8266Vehicle()
 }
 //---------------------------------------------------------------------------------
 //-- Initialize
-void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo, LEDManager ledManager)
+void MavESP8266Vehicle::begin(MavESP8266Bridge *forwardTo, LEDManager &ledManager)
 {
     _ledManager = ledManager;
     MavESP8266Bridge::begin(forwardTo);
@@ -211,7 +211,7 @@ bool MavESP8266Vehicle::_readMessage()
                 {
                     if (_message[_queue_count].msgid == MAVLINK_MSG_ID_HEARTBEAT)
                     {
-                        _ledManager.setLED(_ledManager.air, _ledManager.on);
+                        //_ledManager.setLED(_ledManager.air, _ledManager.on);
                         _last_heartbeat = millis();
                         _checkLinkErrors(&_message[_queue_count]);
                     }

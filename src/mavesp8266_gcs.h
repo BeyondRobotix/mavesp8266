@@ -46,7 +46,7 @@ class MavESP8266GCS : public MavESP8266Bridge
 public:
     MavESP8266GCS();
 
-    void begin(MavESP8266Bridge *forwardTo, IPAddress gcsIP, LEDManager ledManager);
+    void begin(MavESP8266Bridge *forwardTo, IPAddress gcsIP, LEDManager &ledManager);
     void readMessage();
     void readMessageRaw();
     int sendMessage(mavlink_message_t *message, int count);
