@@ -105,7 +105,7 @@ MavESP8266World *getWorld()
 //-- Wait for a DHCPD client
 void wait_for_client()
 {
-    ledManager.setLED(ledManager.wifi, ledManager.off);
+    ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
     DEBUG_LOG("Waiting for a client...\n");
 #ifdef ENABLE_DEBUG
     int wcount = 0;
@@ -121,8 +121,8 @@ void wait_for_client()
             Serial1.println();
         }
 #endif
-        // ledManager.blinkLED();
-        delay(1000);
+        ledManager.doubleBlinkLED();
+        delay(200);
         client_count = wifi_softap_get_station_num();
     }
     ledManager.setLED(ledManager.wifi, ledManager.on);
@@ -274,4 +274,5 @@ void loop()
     }
     updateServer.checkUpdates();
     ledManager.blinkLED();
+    ledManager.doubleBlinkLED();
 }

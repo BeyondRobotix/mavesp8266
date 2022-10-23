@@ -25,7 +25,9 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
                 digitalWrite(gcs, HIGH);
                 _gcsValue = HIGH;
                 break;
-            case blink:
+            default:
+                digitalWrite(gcs, LOW);
+                _gcsValue = LOW;
                 break;
             }
         }
@@ -44,7 +46,9 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
                 digitalWrite(wifi, HIGH);
                 _wifiValue = HIGH;
                 break;
-            case blink:
+            default:
+                digitalWrite(wifi, LOW);
+                _wifiValue = LOW;
                 break;
             }
         }
@@ -62,8 +66,9 @@ void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
             case on:
                 digitalWrite(air, HIGH);
                 _airValue = HIGH;
-                break;
-            case blink:
+            default:
+                digitalWrite(air, LOW);
+                _airValue = LOW;
                 break;
             }
         }
@@ -76,7 +81,6 @@ void LEDManager::blinkLED()
 {
     if (millis() >= _timeNextBlink)
     {
-        _doubleBlinkFlag = !_doubleBlinkFlag;
         _timeNextBlink = millis() + _cycleTime;
         if (_gcsLedStatus == blink)
         {
@@ -100,8 +104,9 @@ void LEDManager::blinkLED()
 
 void LEDManager::doubleBlinkLED()
 {
-    if (millis() >= _timeNextDoubleBlink && _doubleBlinkFlag)
+    if (millis() >= _timeNextDoubleBlink && _doubleBlinkCount < 3)
     {
+        _doubleBlinkCount++;
         _timeNextDoubleBlink = millis() + (_cycleTime / 3);
         if (_wifiLedStatus == doubleBlink)
         {
@@ -109,7 +114,7 @@ void LEDManager::doubleBlinkLED()
             digitalWrite(wifi, _wifiValue);
         }
     }
-    else if (millis() >= _timeNextDoubleBlink && !_doubleBlinkFlag)
+    else if (millis() >= _timeNextDoubleBlink)
     {
         _timeNextDoubleBlink = millis() + _cycleTime;
         if (_wifiLedStatus == doubleBlink)

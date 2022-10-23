@@ -34,6 +34,7 @@ private:
     int _wifiValue = LOW;
     int _airValue = LOW;
     int _cycleTime = 600;
-    bool _doubleBlinkFlag = false;
+    // bool _doubleBlinkFlag = false;
+    int _doubleBlinkCount = 0;
 };
 #endif
