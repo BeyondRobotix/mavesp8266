@@ -1,12 +1,5 @@
 #include "led_manager.h"
 
-// void LEDManager::begin(MavESP8266Bridge *bridge)
-// {
-//     pinMode(gcs, OUTPUT);
-//     pinMode(wifi, OUTPUT);
-//     pinMode(air, OUTPUT);
-// }
-
 void LEDManager::setLED(Led selectedLed, LedStatus ledStatus)
 {
     switch (selectedLed)
