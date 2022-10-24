@@ -44,6 +44,8 @@
 #include "led_manager.h"
 
 #include <ESP8266mDNS.h>
+
+#define GPIO02  2
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
 class MavESP8266UpdateImp : public MavESP8266Update
@@ -153,7 +155,7 @@ void check_wifi_connected()
 
 //---------------------------------------------------------------------------------
 //-- Reset all parameters whenever the reset gpio pin is active
-void reset_interrupt()
+IRAM_ATTR void reset_interrupt()
 {
     Parameters.resetToDefaults();
     Parameters.saveAllToEeprom();
@@ -173,13 +175,12 @@ void setup()
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
-    // Serial.begin(115200);
-    // Serial.print("test");
+    Serial.begin(115200);
+    Serial.print("test");
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
     attachInterrupt(GPIO02, reset_interrupt, FALLING);
-
 #endif
     Logger.begin(2048);
 
