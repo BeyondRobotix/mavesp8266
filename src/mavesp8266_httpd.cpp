@@ -473,13 +473,22 @@ void handle_setParameters()
     }
     if (webServer.hasArg(kPWD))
     {
-        ok = true;
-        getWorld()->getParameters()->setWifiPassword(webServer.arg(kPWD).c_str());
+        // Ensure password is between 8 characters and 16 characters
+        if(webServer.arg(kPWD).length() >= 8 && webServer.arg(kPWD).length() <= 16) 
+        {
+            ok = true;
+            getWorld()->getParameters()->setWifiPassword(webServer.arg(kPWD).c_str());
+        }
+
     }
     if (webServer.hasArg(kSSID))
     {
-        ok = true;
-        getWorld()->getParameters()->setWifiSsid(webServer.arg(kSSID).c_str());
+        // Ensure SSID is less than or equal to 16 characters
+        if(webServer.arg(kSSID).length() <= 16) 
+        {
+            ok = true;
+            getWorld()->getParameters()->setWifiSsid(webServer.arg(kSSID).c_str());
+        }
     }
     if (webServer.hasArg(kPWDSTA))
     {
