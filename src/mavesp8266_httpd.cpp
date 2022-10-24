@@ -43,132 +43,152 @@
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
 
-const char PROGMEM kTEXTPLAIN[]  = "text/plain";
-const char PROGMEM kTEXTHTML[]   = "text/html";
-const char PROGMEM kACCESSCTL[]  = "Access-Control-Allow-Origin";
+const char PROGMEM kTEXTPLAIN[] = "text/plain";
+const char PROGMEM kTEXTHTML[] = "text/html";
+const char PROGMEM kACCESSCTL[] = "Access-Control-Allow-Origin";
 const char PROGMEM kUPLOADFORM[] = "<h1><a href='/'>MAVLink WiFi Bridge</a></h1><form method='POST' action='/upload' enctype='multipart/form-data'><input type='file' name='update'><br><input type='submit' value='Update'></form>";
-const char PROGMEM kHEADER[]     = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVLink WiFi Bridge</a></h1>";
-const char PROGMEM kBADARG[]     = "BAD ARGS";
-const char PROGMEM kAPPJSON[]    = "application/json";
+const char PROGMEM kHEADER[] = "<!doctype html><html><head><title>MavLink Bridge</title></head><body><h1><a href='/'>MAVLink WiFi Bridge</a></h1>";
+const char PROGMEM kBADARG[] = "BAD ARGS";
+const char PROGMEM kAPPJSON[] = "application/json";
 
-const char* kBAUD       = "baud";
-const char* kPWD        = "pwd";
-const char* kSSID       = "ssid";
-const char* kPWDSTA     = "pwdsta";
-const char* kSSIDSTA    = "ssidsta";
-const char* kIPSTA      = "ipsta";
-const char* kGATESTA    = "gatewaysta";
-const char* kSUBSTA     = "subnetsta";
-const char* kCPORT      = "cport";
-const char* kHPORT      = "hport";
-const char* kCHANNEL    = "channel";
-const char* kDEBUG      = "debug";
-const char* kREBOOT     = "reboot";
-const char* kPOSITION   = "position";
-const char* kMODE       = "mode";
+const char *kBAUD = "baud";
+const char *kPWD = "pwd";
+const char *kSSID = "ssid";
+const char *kPWDSTA = "pwdsta";
+const char *kSSIDSTA = "ssidsta";
+const char *kIPSTA = "ipsta";
+const char *kGATESTA = "gatewaysta";
+const char *kSUBSTA = "subnetsta";
+const char *kCPORT = "cport";
+const char *kHPORT = "hport";
+const char *kCHANNEL = "channel";
+const char *kDEBUG = "debug";
+const char *kREBOOT = "reboot";
+const char *kPOSITION = "position";
+const char *kMODE = "mode";
 
-const char* kFlashMaps[7] = {
+const char *kFlashMaps[7] = {
     "512KB (256/256)",
     "256KB",
     "1MB (512/512)",
     "2MB (512/512)",
     "4MB (512/512)",
     "2MB (1024/1024)",
-    "4MB (1024/1024)"
-};
+    "4MB (1024/1024)"};
 
 static uint32_t flash = 0;
 static char paramCRC[12] = {""};
 
-ESP8266WebServer    webServer(80);
-MavESP8266Update*   updateCB    = NULL;
-bool                started     = false;
+ESP8266WebServer webServer(80);
+MavESP8266Update *updateCB = NULL;
+bool started = false;
 
 //---------------------------------------------------------------------------------
-void setNoCacheHeaders() {
+void setNoCacheHeaders()
+{
     webServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     webServer.sendHeader("Pragma", "no-cache");
     webServer.sendHeader("Expires", "0");
 }
 
 //---------------------------------------------------------------------------------
-void returnFail(String msg) {
+void returnFail(String msg)
+{
     webServer.send(500, FPSTR(kTEXTPLAIN), msg + "\r\n");
 }
 
 //---------------------------------------------------------------------------------
-void respondOK() {
+void respondOK()
+{
     webServer.send(200, FPSTR(kTEXTPLAIN), "OK");
 }
 
 //---------------------------------------------------------------------------------
-void handle_update() {
+void handle_update()
+{
     webServer.sendHeader("Connection", "close");
     webServer.sendHeader(FPSTR(kACCESSCTL), "*");
     webServer.send(200, FPSTR(kTEXTHTML), FPSTR(kUPLOADFORM));
 }
 
 //---------------------------------------------------------------------------------
-void handle_upload() {
+void handle_upload()
+{
     webServer.sendHeader("Connection", "close");
     webServer.sendHeader(FPSTR(kACCESSCTL), "*");
     webServer.send(200, FPSTR(kTEXTPLAIN), (Update.hasError()) ? "FAIL" : "OK");
-    if(updateCB) {
+    if (updateCB)
+    {
         updateCB->updateCompleted();
     }
     ESP.restart();
 }
 
 //---------------------------------------------------------------------------------
-void handle_upload_status() {
-    bool success  = true;
-    if(!started) {
+void handle_upload_status()
+{
+    bool success = true;
+    if (!started)
+    {
         started = true;
-        if(updateCB) {
+        if (updateCB)
+        {
             updateCB->updateStarted();
         }
     }
-    HTTPUpload& upload = webServer.upload();
-    if(upload.status == UPLOAD_FILE_START) {
-        #ifdef DEBUG_SERIAL
-            DEBUG_SERIAL.setDebugOutput(true);
-        #endif
+    HTTPUpload &upload = webServer.upload();
+    if (upload.status == UPLOAD_FILE_START)
+    {
+#ifdef DEBUG_SERIAL
+        DEBUG_SERIAL.setDebugOutput(true);
+#endif
         WiFiUDP::stopAll();
-        #ifdef DEBUG_SERIAL
-            DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
-        #endif
+#ifdef DEBUG_SERIAL
+        DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
+#endif
         uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-        if(!Update.begin(maxSketchSpace)) {
-            #ifdef DEBUG_SERIAL
-                Update.printError(DEBUG_SERIAL);
-            #endif
+        if (!Update.begin(maxSketchSpace))
+        {
+#ifdef DEBUG_SERIAL
+            Update.printError(DEBUG_SERIAL);
+#endif
             success = false;
         }
-    } else if(upload.status == UPLOAD_FILE_WRITE) {
-        if(Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-            #ifdef DEBUG_SERIAL
-                Update.printError(DEBUG_SERIAL);
-            #endif
+    }
+    else if (upload.status == UPLOAD_FILE_WRITE)
+    {
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
+        {
+#ifdef DEBUG_SERIAL
+            Update.printError(DEBUG_SERIAL);
+#endif
             success = false;
         }
-    } else if (upload.status == UPLOAD_FILE_END) {
-        if (Update.end(true)) {
-            #ifdef DEBUG_SERIAL
-                DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
-            #endif
-        } else {
-            #ifdef DEBUG_SERIAL
-                Update.printError(DEBUG_SERIAL);
-            #endif
+    }
+    else if (upload.status == UPLOAD_FILE_END)
+    {
+        if (Update.end(true))
+        {
+#ifdef DEBUG_SERIAL
+            DEBUG_SERIAL.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+#endif
+        }
+        else
+        {
+#ifdef DEBUG_SERIAL
+            Update.printError(DEBUG_SERIAL);
+#endif
             success = false;
         }
-        #ifdef DEBUG_SERIAL
-            DEBUG_SERIAL.setDebugOutput(false);
-        #endif
+#ifdef DEBUG_SERIAL
+        DEBUG_SERIAL.setDebugOutput(false);
+#endif
     }
     yield();
-    if(!success) {
-        if(updateCB) {
+    if (!success)
+    {
+        if (updateCB)
+        {
             updateCB->updateError();
         }
     }
@@ -179,17 +199,18 @@ void handle_getParameters()
 {
     String message = FPSTR(kHEADER);
     message += "<p>Parameters</p><table><tr><td width=\"240\">Name</td><td>Value</td></tr>";
-    for(int i = 0; i < MavESP8266Parameters::ID_COUNT; i++) {
+    for (int i = 0; i < MavESP8266Parameters::ID_COUNT; i++)
+    {
         message += "<tr><td>";
         message += getWorld()->getParameters()->getAt(i)->id;
         message += "</td>";
         unsigned long val = 0;
-        if(getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT32)
-            val = (unsigned long)*((uint32_t*)getWorld()->getParameters()->getAt(i)->value);
-        else if(getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT16)
-            val = (unsigned long)*((uint16_t*)getWorld()->getParameters()->getAt(i)->value);
+        if (getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT32)
+            val = (unsigned long)*((uint32_t *)getWorld()->getParameters()->getAt(i)->value);
+        else if (getWorld()->getParameters()->getAt(i)->type == MAV_PARAM_TYPE_UINT16)
+            val = (unsigned long)*((uint16_t *)getWorld()->getParameters()->getAt(i)->value);
         else
-            val = (unsigned long)*((int8_t*)getWorld()->getParameters()->getAt(i)->value);
+            val = (unsigned long)*((int8_t *)getWorld()->getParameters()->getAt(i)->value);
         message += "<td>";
         message += val;
         message += "</td></tr>";
@@ -228,16 +249,18 @@ static void handle_setup()
 
     message += "WiFi Mode:&nbsp;";
     message += "<input type='radio' name='mode' value='0'";
-    if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
+    if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP)
+    {
         message += " checked";
     }
     message += ">AccessPoint\n";
     message += "<input type='radio' name='mode' value='1'";
-    if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_STA) {
+    if (getWorld()->getParameters()->getWifiMode() == WIFI_MODE_STA)
+    {
         message += " checked";
     }
     message += ">Station<br>\n";
-    
+
     message += "AP SSID:&nbsp;";
     message += "<input type='text' name='ssid' value='";
     message += getWorld()->getParameters()->getWifiSsid();
@@ -263,7 +286,7 @@ static void handle_setup()
     message += getWorld()->getParameters()->getWifiStaPassword();
     message += "'><br>";
 
-    IPAddress IP;    
+    IPAddress IP;
     message += "Station IP:&nbsp;";
     message += "<input type='text' name='ipsta' value='";
     IP = getWorld()->getParameters()->getWifiStaIP();
@@ -291,29 +314,29 @@ static void handle_setup()
     message += "<input type='text' name='cport' value='";
     message += getWorld()->getParameters()->getWifiUdpCport();
     message += "'><br>";
-    
+
     message += "Baudrate:&nbsp;";
     message += "<input type='text' name='baud' value='";
     message += getWorld()->getParameters()->getUartBaudRate();
     message += "'><br>";
-    
+
     message += "<input type='submit' value='Save'>";
     message += "</form>";
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
 }
 
-
 //---------------------------------------------------------------------------------
 static void handle_getStatus()
 {
-    if(!flash)
+    if (!flash)
         flash = ESP.getFreeSketchSpace();
-    if(!paramCRC[0]) {
+    if (!paramCRC[0])
+    {
         snprintf(paramCRC, sizeof(paramCRC), "%08X", getWorld()->getParameters()->paramHashCheck());
     }
-    linkStatus* gcsStatus = getWorld()->getGCS()->getStatus();
-    linkStatus* vehicleStatus = getWorld()->getVehicle()->getStatus();
+    linkStatus *gcsStatus = getWorld()->getGCS()->getStatus();
+    linkStatus *vehicleStatus = getWorld()->getVehicle()->getStatus();
     String message = FPSTR(kHEADER);
     message += "<p>Comm Status</p><table><tr><td width=\"240\">Packets Received from GCS</td><td>";
     message += gcsStatus->packets_received;
@@ -353,7 +376,8 @@ static void handle_getStatus()
 void handle_getJLog()
 {
     uint32_t position = 0, len;
-    if(webServer.hasArg(kPOSITION)) {
+    if (webServer.hasArg(kPOSITION))
+    {
         position = webServer.arg(kPOSITION).toInt();
     }
     String logText = getWorld()->getLogger()->getLog(&position, &len);
@@ -368,29 +392,29 @@ void handle_getJLog()
 //---------------------------------------------------------------------------------
 void handle_getJSysInfo()
 {
-    if(!flash)
+    if (!flash)
         flash = ESP.getFreeSketchSpace();
-    if(!paramCRC[0]) {
+    if (!paramCRC[0])
+    {
         snprintf(paramCRC, sizeof(paramCRC), "%08X", getWorld()->getParameters()->paramHashCheck());
     }
     uint32_t fid = spi_flash_get_id();
     char message[512];
     snprintf(message, 512,
-        "{ "
-        "\"size\": \"%s\", "
-        "\"id\": \"0x%02lX 0x%04lX\", "
-        "\"flashfree\": \"%u\", "
-        "\"heapfree\": \"%u\", "
-        "\"logsize\": \"%u\", "
-        "\"paramcrc\": \"%s\""
-        " }",
-        kFlashMaps[system_get_flash_size_map()],
-        (long unsigned int)(fid & 0xff), (long unsigned int)((fid & 0xff00) | ((fid >> 16) & 0xff)),
-        flash,
-        ESP.getFreeHeap(),
-        getWorld()->getLogger()->getPosition(),
-        paramCRC
-    );
+             "{ "
+             "\"size\": \"%s\", "
+             "\"id\": \"0x%02lX 0x%04lX\", "
+             "\"flashfree\": \"%u\", "
+             "\"heapfree\": \"%u\", "
+             "\"logsize\": \"%u\", "
+             "\"paramcrc\": \"%s\""
+             " }",
+             kFlashMaps[system_get_flash_size_map()],
+             (long unsigned int)(fid & 0xff), (long unsigned int)((fid & 0xff00) | ((fid >> 16) & 0xff)),
+             flash,
+             ESP.getFreeHeap(),
+             getWorld()->getLogger()->getPosition(),
+             paramCRC);
     webServer.send(200, "application/json", message);
 }
 
@@ -398,116 +422,135 @@ void handle_getJSysInfo()
 void handle_getJSysStatus()
 {
     bool reset = false;
-    if(webServer.hasArg("r")) {
+    if (webServer.hasArg("r"))
+    {
         reset = webServer.arg("r").toInt() != 0;
     }
-    linkStatus* gcsStatus = getWorld()->getGCS()->getStatus();
-    linkStatus* vehicleStatus = getWorld()->getVehicle()->getStatus();
-    if(reset) {
-        memset(gcsStatus,     0, sizeof(linkStatus));
+    linkStatus *gcsStatus = getWorld()->getGCS()->getStatus();
+    linkStatus *vehicleStatus = getWorld()->getVehicle()->getStatus();
+    if (reset)
+    {
+        memset(gcsStatus, 0, sizeof(linkStatus));
         memset(vehicleStatus, 0, sizeof(linkStatus));
     }
     char message[512];
     snprintf(message, 512,
-        "{ "
-        "\"gpackets\": \"%u\", "
-        "\"gsent\": \"%u\", "
-        "\"glost\": \"%u\", "
-        "\"vpackets\": \"%u\", "
-        "\"vsent\": \"%u\", "
-        "\"vlost\": \"%u\", "
-        "\"radio\": \"%u\", "
-        "\"buffer\": \"%u\""
-        " }",
-        gcsStatus->packets_received,
-        gcsStatus->packets_sent,
-        gcsStatus->packets_lost,
-        vehicleStatus->packets_received,
-        vehicleStatus->packets_sent,
-        vehicleStatus->packets_lost,
-        gcsStatus->radio_status_sent,
-        vehicleStatus->queue_status
-    );
+             "{ "
+             "\"gpackets\": \"%u\", "
+             "\"gsent\": \"%u\", "
+             "\"glost\": \"%u\", "
+             "\"vpackets\": \"%u\", "
+             "\"vsent\": \"%u\", "
+             "\"vlost\": \"%u\", "
+             "\"radio\": \"%u\", "
+             "\"buffer\": \"%u\""
+             " }",
+             gcsStatus->packets_received,
+             gcsStatus->packets_sent,
+             gcsStatus->packets_lost,
+             vehicleStatus->packets_received,
+             vehicleStatus->packets_sent,
+             vehicleStatus->packets_lost,
+             gcsStatus->radio_status_sent,
+             vehicleStatus->queue_status);
     webServer.send(200, "application/json", message);
 }
 
 //---------------------------------------------------------------------------------
 void handle_setParameters()
 {
-    if(webServer.args() == 0) {
+    if (webServer.args() == 0)
+    {
         returnFail(kBADARG);
         return;
     }
     bool ok = false;
     bool reboot = false;
-    if(webServer.hasArg(kBAUD)) {
+    if (webServer.hasArg(kBAUD))
+    {
         ok = true;
         getWorld()->getParameters()->setUartBaudRate(webServer.arg(kBAUD).toInt());
     }
-    if(webServer.hasArg(kPWD)) {
+    if (webServer.hasArg(kPWD))
+    {
         ok = true;
         getWorld()->getParameters()->setWifiPassword(webServer.arg(kPWD).c_str());
     }
-    if(webServer.hasArg(kSSID)) {
+    if (webServer.hasArg(kSSID))
+    {
         ok = true;
         getWorld()->getParameters()->setWifiSsid(webServer.arg(kSSID).c_str());
     }
-    if(webServer.hasArg(kPWDSTA)) {
+    if (webServer.hasArg(kPWDSTA))
+    {
         ok = true;
         getWorld()->getParameters()->setWifiStaPassword(webServer.arg(kPWDSTA).c_str());
     }
-    if(webServer.hasArg(kSSIDSTA)) {
+    if (webServer.hasArg(kSSIDSTA))
+    {
         ok = true;
         getWorld()->getParameters()->setWifiStaSsid(webServer.arg(kSSIDSTA).c_str());
     }
-    if(webServer.hasArg(kIPSTA)) {
+    if (webServer.hasArg(kIPSTA))
+    {
         IPAddress ip;
         ip.fromString(webServer.arg(kIPSTA).c_str());
         getWorld()->getParameters()->setWifiStaIP(ip);
     }
-    if(webServer.hasArg(kGATESTA)) {
+    if (webServer.hasArg(kGATESTA))
+    {
         IPAddress ip;
         ip.fromString(webServer.arg(kGATESTA).c_str());
         getWorld()->getParameters()->setWifiStaGateway(ip);
     }
-    if(webServer.hasArg(kSUBSTA)) {
+    if (webServer.hasArg(kSUBSTA))
+    {
         IPAddress ip;
         ip.fromString(webServer.arg(kSUBSTA).c_str());
         getWorld()->getParameters()->setWifiStaSubnet(ip);
     }
-    if(webServer.hasArg(kCPORT)) {
+    if (webServer.hasArg(kCPORT))
+    {
         ok = true;
         getWorld()->getParameters()->setWifiUdpCport(webServer.arg(kCPORT).toInt());
     }
-    if(webServer.hasArg(kHPORT)) {
+    if (webServer.hasArg(kHPORT))
+    {
         ok = true;
         getWorld()->getParameters()->setWifiUdpHport(webServer.arg(kHPORT).toInt());
     }
-    if(webServer.hasArg(kCHANNEL)) {
+    if (webServer.hasArg(kCHANNEL))
+    {
         ok = true;
         getWorld()->getParameters()->setWifiChannel(webServer.arg(kCHANNEL).toInt());
     }
-    if(webServer.hasArg(kDEBUG)) {
+    if (webServer.hasArg(kDEBUG))
+    {
         ok = true;
         getWorld()->getParameters()->setDebugEnabled(webServer.arg(kDEBUG).toInt());
     }
-    if(webServer.hasArg(kMODE)) {
+    if (webServer.hasArg(kMODE))
+    {
         ok = true;
         getWorld()->getParameters()->setWifiMode(webServer.arg(kMODE).toInt());
     }
-    if(webServer.hasArg(kREBOOT)) {
+    if (webServer.hasArg(kREBOOT))
+    {
         ok = true;
         reboot = webServer.arg(kREBOOT) == "1";
     }
-    if(ok) {
+    if (ok)
+    {
         getWorld()->getParameters()->saveAllToEeprom();
         //-- Send new parameters back
         handle_getParameters();
-        if(reboot) {
+        if (reboot)
+        {
             delay(100);
             ESP.restart();
         }
-    } else
+    }
+    else
         returnFail(kBADARG);
 }
 
@@ -519,12 +562,13 @@ static void handle_reboot()
     setNoCacheHeaders();
     webServer.send(200, FPSTR(kTEXTHTML), message);
     delay(500);
-    ESP.restart();    
+    ESP.restart();
 }
 
 //---------------------------------------------------------------------------------
 //-- 404
-void handle_notFound(){
+void handle_notFound()
+{
     String message = "File Not Found\n\n";
     message += "URI: ";
     message += webServer.uri();
@@ -533,7 +577,8 @@ void handle_notFound(){
     message += "\nArguments: ";
     message += webServer.args();
     message += "\n";
-    for (uint8_t i = 0; i < webServer.args(); i++){
+    for (uint8_t i = 0; i < webServer.args(); i++)
+    {
         message += " " + webServer.argName(i) + ": " + webServer.arg(i) + "\n";
     }
     webServer.send(404, FPSTR(kTEXTPLAIN), message);
@@ -542,34 +587,31 @@ void handle_notFound(){
 //---------------------------------------------------------------------------------
 MavESP8266Httpd::MavESP8266Httpd()
 {
-
 }
 
 //---------------------------------------------------------------------------------
 //-- Initialize
-void
-MavESP8266Httpd::begin(MavESP8266Update* updateCB_)
+void MavESP8266Httpd::begin(MavESP8266Update *updateCB_)
 {
     updateCB = updateCB_;
-    webServer.on("/",               handle_root);
-    webServer.on("/getparameters",  handle_getParameters);
-    webServer.on("/setparameters",  handle_setParameters);
-    webServer.on("/getstatus",      handle_getStatus);
-    webServer.on("/reboot",         handle_reboot);
-    webServer.on("/setup",          handle_setup);
-    webServer.on("/info.json",      handle_getJSysInfo);
-    webServer.on("/status.json",    handle_getJSysStatus);
-    webServer.on("/log.json",       handle_getJLog);
-    webServer.on("/update",         handle_update);
-    webServer.on("/upload",         HTTP_POST, handle_upload, handle_upload_status);
-    webServer.onNotFound(           handle_notFound);
+    webServer.on("/", handle_root);
+    webServer.on("/getparameters", handle_getParameters);
+    webServer.on("/setparameters", handle_setParameters);
+    webServer.on("/getstatus", handle_getStatus);
+    webServer.on("/reboot", handle_reboot);
+    webServer.on("/setup", handle_setup);
+    webServer.on("/info.json", handle_getJSysInfo);
+    webServer.on("/status.json", handle_getJSysStatus);
+    webServer.on("/log.json", handle_getJLog);
+    webServer.on("/update", handle_update);
+    webServer.on("/upload", HTTP_POST, handle_upload, handle_upload_status);
+    webServer.onNotFound(handle_notFound);
     webServer.begin();
 }
 
 //---------------------------------------------------------------------------------
 //-- Initialize
-void
-MavESP8266Httpd::checkUpdates()
+void MavESP8266Httpd::checkUpdates()
 {
     webServer.handleClient();
 }

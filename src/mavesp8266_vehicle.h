@@ -39,35 +39,37 @@
 #define MAVESP8266_VEHICLE_H
 
 #include "mavesp8266.h"
+#include "led_manager.h"
 
 //-- UDP Outgoing Packet Queue
-#define UAS_QUEUE_SIZE          60
-#define UAS_QUEUE_THRESHOLD     20
-#define UAS_QUEUE_TIMEOUT       5 // 5ms
+#define UAS_QUEUE_SIZE 60
+#define UAS_QUEUE_THRESHOLD 20
+#define UAS_QUEUE_TIMEOUT 5 // 5ms
 
-class MavESP8266Vehicle : public MavESP8266Bridge {
+class MavESP8266Vehicle : public MavESP8266Bridge
+{
 public:
-    MavESP8266Vehicle();
-
-    void    begin           (MavESP8266Bridge* forwardTo);
-    void    readMessage     ();
-    void    readMessageRaw  ();
-    int     sendMessage     (mavlink_message_t* message, int count);
-    int     sendMessage     (mavlink_message_t* message);
-    int     sendMessageRaw   (uint8_t *buffer, int len);
-    linkStatus* getStatus   ();
+    MavESP8266Vehicle(LEDManager &ledManager);
+    void begin(MavESP8266Bridge *forwardTo);
+    void readMessage();
+    void readMessageRaw();
+    int sendMessage(mavlink_message_t *message, int count);
+    int sendMessage(mavlink_message_t *message);
+    int sendMessageRaw(uint8_t *buffer, int len);
+    linkStatus *getStatus();
 
 protected:
-    void    _sendRadioStatus();
+    void _sendRadioStatus();
 
 private:
-    bool    _readMessage    ();
+    bool _readMessage();
 
 private:
-    int                     _queue_count;
-    unsigned long           _queue_time;
-    float                   _buffer_status;
-    mavlink_message_t       _message[UAS_QUEUE_SIZE];
+    int _queue_count;
+    unsigned long _queue_time;
+    float _buffer_status;
+    LEDManager &_ledManager;
+    mavlink_message_t _message[UAS_QUEUE_SIZE];
 };
 
 #endif

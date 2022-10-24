@@ -45,119 +45,135 @@
 #undef F
 #include <ardupilotmega/mavlink.h>
 
- extern "C" {
-    // Espressif SDK
-    #include "user_interface.h"
+extern "C"
+{
+// Espressif SDK
+#include "user_interface.h"
 }
 
 class MavESP8266Parameters;
 class MavESP8266Component;
 class MavESP8266Vehicle;
 class MavESP8266GCS;
+class MavESP8266Status;
 
-#define DEFAULT_UART_SPEED          921600
-#define DEFAULT_WIFI_CHANNEL        11
-#define DEFAULT_UDP_HPORT           14550
-#define DEFAULT_UDP_CPORT           14555
+#define DEFAULT_UART_SPEED 921600
+#define DEFAULT_WIFI_CHANNEL 11
+#define DEFAULT_UDP_HPORT 14550
+#define DEFAULT_UDP_CPORT 14555
 
-#define HEARTBEAT_TIMEOUT           10 * 1000
+#define HEARTBEAT_TIMEOUT 10 * 1000
 
 //-- The version is set from the build system (major, minor and build)
-#define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
+#define MAVESP8266_VERSION ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX).
-//#define ENABLE_DEBUG
+#define ENABLE_DEBUG
 
 #ifdef ENABLE_DEBUG
-#define DEBUG_LOG(format, ...) do { getWorld()->getLogger()->log(format, ## __VA_ARGS__); } while(0)
+#define DEBUG_LOG(format, ...)                               \
+    do                                                       \
+    {                                                        \
+        getWorld()->getLogger()->log(format, ##__VA_ARGS__); \
+    } while (0)
 #else
-#define DEBUG_LOG(format, ...) do { } while(0)
+#define DEBUG_LOG(format, ...) \
+    do                         \
+    {                          \
+    } while (0)
 #endif
 
 //---------------------------------------------------------------------------------
 //-- Link Status
-struct linkStatus {
-    uint32_t    packets_received;
-    uint32_t    packets_lost;
-    uint32_t    packets_sent;
-    uint32_t    radio_status_sent;
-    uint8_t     queue_status;
+struct linkStatus
+{
+    uint32_t packets_received;
+    uint32_t packets_lost;
+    uint32_t packets_sent;
+    uint32_t radio_status_sent;
+    uint8_t queue_status;
 };
-
 //---------------------------------------------------------------------------------
 //-- Base Comm Link
-class MavESP8266Bridge {
+class MavESP8266Bridge
+{
 public:
     MavESP8266Bridge();
-    virtual ~MavESP8266Bridge(){;}
-    virtual void    begin           (MavESP8266Bridge* forwardTo);
-    virtual void    readMessage     () = 0;
-    virtual void    readMessageRaw  () = 0;
-    virtual int     sendMessage     (mavlink_message_t* message, int count) = 0;
-    virtual int     sendMessage     (mavlink_message_t* message) = 0;
-    virtual int     sendMessageRaw   (uint8_t *buffer, int len) = 0;
-    virtual bool    heardFrom       () { return _heard_from;    }
-    virtual uint8_t systemID        () { return _system_id;     }
-    virtual uint8_t componentID     () { return _component_id;  }
-    virtual linkStatus* getStatus   () { return &_status;       }
-    mavlink_channel_t       _send_chan;
-    mavlink_channel_t       _recv_chan;
+    virtual ~MavESP8266Bridge() { ; }
+    virtual void begin(MavESP8266Bridge *forwardTo);
+    virtual void readMessage() = 0;
+    virtual void readMessageRaw() = 0;
+    virtual int sendMessage(mavlink_message_t *message, int count) = 0;
+    virtual int sendMessage(mavlink_message_t *message) = 0;
+    virtual int sendMessageRaw(uint8_t *buffer, int len) = 0;
+    virtual bool heardFrom() { return _heard_from; }
+    virtual uint8_t systemID() { return _system_id; }
+    virtual uint8_t componentID() { return _component_id; }
+    virtual linkStatus *getStatus() { return &_status; }
+    mavlink_channel_t _send_chan;
+    mavlink_channel_t _recv_chan;
+
 protected:
-    virtual void    _checkLinkErrors(mavlink_message_t* msg);
-    virtual void    _sendRadioStatus() = 0;
+    virtual void _checkLinkErrors(mavlink_message_t *msg);
+    virtual void _sendRadioStatus() = 0;
+
 protected:
-    bool                    _heard_from;
-    uint8_t                 _system_id;
-    uint8_t                 _component_id;
-    uint8_t                 _seq_expected;
-    uint32_t                _last_heartbeat;
-    linkStatus              _status;
-    unsigned long           _last_status_time;
-    MavESP8266Bridge*       _forwardTo;
-    mavlink_status_t        _mav_status;
-    mavlink_message_t       _rxmsg;
-    mavlink_status_t        _rxstatus;
+    bool _heard_from;
+    uint8_t _system_id;
+    uint8_t _component_id;
+    uint8_t _seq_expected;
+    uint32_t _last_heartbeat;
+    linkStatus _status;
+    unsigned long _last_status_time;
+    MavESP8266Bridge *_forwardTo;
+    mavlink_status_t _mav_status;
+    mavlink_message_t _rxmsg;
+    mavlink_status_t _rxstatus;
 };
 
 //---------------------------------------------------------------------------------
 //-- Logger
-class MavESP8266Log {
+class MavESP8266Log
+{
 public:
-    MavESP8266Log   ();
-    void            begin           (size_t bufferSize); // Allocate a buffer for the log
-    size_t          log             (const char *format, ...); // Add to the log
-    String          getLog          (uint32_t* pStart, uint32_t* pLen); // Get the log starting at a position
-    uint32_t        getLogSize      (); // Number of bytes available at the current log position
-    uint32_t        getPosition     ();
+    MavESP8266Log();
+    void begin(size_t bufferSize);                   // Allocate a buffer for the log
+    size_t log(const char *format, ...);             // Add to the log
+    String getLog(uint32_t *pStart, uint32_t *pLen); // Get the log starting at a position
+    uint32_t getLogSize();                           // Number of bytes available at the current log position
+    uint32_t getPosition();
+
 private:
-    char*           _buffer; // Raw memory
-    size_t          _buffer_size; // Size of the above memory
-    uint32_t        _log_offset; // Position in the buffer
-    uint32_t        _log_position; // Absolute position in the log since boot
+    char *_buffer;          // Raw memory
+    size_t _buffer_size;    // Size of the above memory
+    uint32_t _log_offset;   // Position in the buffer
+    uint32_t _log_position; // Absolute position in the log since boot
 };
 
 //---------------------------------------------------------------------------------
 //-- Accessors
-class MavESP8266World {
+class MavESP8266World
+{
 public:
-    virtual ~MavESP8266World(){;}
-    virtual MavESP8266Parameters*   getParameters   () = 0;
-    virtual MavESP8266Component*    getComponent    () = 0;
-    virtual MavESP8266Vehicle*      getVehicle      () = 0;
-    virtual MavESP8266GCS*          getGCS          () = 0;
-    virtual MavESP8266Log*          getLogger       () = 0;
+    virtual ~MavESP8266World() { ; }
+    virtual MavESP8266Parameters *getParameters() = 0;
+    virtual MavESP8266Component *getComponent() = 0;
+    virtual MavESP8266Vehicle *getVehicle() = 0;
+    virtual MavESP8266GCS *getGCS() = 0;
+    virtual MavESP8266Log *getLogger() = 0;
 };
 
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
-class MavESP8266Update {
+class MavESP8266Update
+{
 public:
-    virtual ~MavESP8266Update(){;}
-    virtual void updateStarted  () = 0;
+    virtual ~MavESP8266Update() { ; }
+    virtual void updateStarted() = 0;
     virtual void updateCompleted() = 0;
-    virtual void updateError    () = 0;
+    virtual void updateError() = 0;
 };
 
-extern MavESP8266World* getWorld();
+extern MavESP8266World *getWorld();
 
 #endif

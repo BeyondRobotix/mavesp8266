@@ -41,21 +41,19 @@
 #include "mavesp8266_vehicle.h"
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_component.h"
+#include "led_manager.h"
 
 #include <ESP8266mDNS.h>
-
-#define GPIO02  2
-
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
-class MavESP8266UpdateImp : public MavESP8266Update {
+class MavESP8266UpdateImp : public MavESP8266Update
+{
 public:
-    MavESP8266UpdateImp ()
+    MavESP8266UpdateImp()
         : _isUpdating(false)
     {
-
     }
-    void updateStarted  ()
+    void updateStarted()
     {
         _isUpdating = true;
     }
@@ -63,70 +61,100 @@ public:
     {
         //-- TODO
     }
-    void updateError    ()
+    void updateError()
     {
         //-- TODO
     }
-    bool isUpdating     () { return _isUpdating; }
+    bool isUpdating() { return _isUpdating; }
+
 private:
     bool _isUpdating;
 };
 
-
-
 //-- Singletons
-IPAddress               localIP;
-MavESP8266Component     Component;
-MavESP8266Parameters    Parameters;
-MavESP8266GCS           GCS;
-MavESP8266Vehicle       Vehicle;
-MavESP8266Httpd         updateServer;
-MavESP8266UpdateImp     updateStatus;
-MavESP8266Log           Logger;
+LEDManager ledManager;
+IPAddress localIP;
+MavESP8266Component Component;
+MavESP8266Parameters Parameters;
+MavESP8266GCS GCS(ledManager);
+MavESP8266Vehicle Vehicle(ledManager);
+MavESP8266Httpd updateServer;
+MavESP8266UpdateImp updateStatus;
+MavESP8266Log Logger;
 
 //---------------------------------------------------------------------------------
 //-- Accessors
-class MavESP8266WorldImp : public MavESP8266World {
+class MavESP8266WorldImp : public MavESP8266World
+{
 public:
-    MavESP8266Parameters*   getParameters   () { return &Parameters;    }
-    MavESP8266Component*    getComponent    () { return &Component;     }
-    MavESP8266Vehicle*      getVehicle      () { return &Vehicle;       }
-    MavESP8266GCS*          getGCS          () { return &GCS;           }
-    MavESP8266Log*          getLogger       () { return &Logger;        }
+    MavESP8266Parameters *getParameters() { return &Parameters; }
+    MavESP8266Component *getComponent() { return &Component; }
+    MavESP8266Vehicle *getVehicle() { return &Vehicle; }
+    MavESP8266GCS *getGCS() { return &GCS; }
+    MavESP8266Log *getLogger() { return &Logger; }
 };
 
-MavESP8266WorldImp      World;
+MavESP8266WorldImp World;
 
-MavESP8266World* getWorld()
+MavESP8266World *getWorld()
 {
     return &World;
 }
 
 //---------------------------------------------------------------------------------
 //-- Wait for a DHCPD client
-void wait_for_client() {
+void wait_for_client()
+{
     DEBUG_LOG("Waiting for a client...\n");
 #ifdef ENABLE_DEBUG
     int wcount = 0;
 #endif
     uint8 client_count = wifi_softap_get_station_num();
-    while (!client_count) {
+    while (!client_count)
+    {
 #ifdef ENABLE_DEBUG
-        Serial1.print(".");
-        if(++wcount > 80) {
+        Serial.print(".");
+        if (++wcount > 80)
+        {
             wcount = 0;
             Serial1.println();
         }
 #endif
-        delay(1000);
+        ledManager.doubleBlinkLED();
+        delay(200);
         client_count = wifi_softap_get_station_num();
     }
+    ledManager.setLED(ledManager.wifi, ledManager.on);
+    ledManager.setLED(ledManager.gcs, ledManager.blink);
+    ledManager.setLED(ledManager.air, ledManager.blink);
     DEBUG_LOG("Got %d client(s)\n", client_count);
+}
+
+void check_wifi_connected()
+{
+    if (Parameters.getWifiMode() == WIFI_MODE_AP && !wifi_softap_get_station_num())
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
+    }
+    else if (Parameters.getWifiMode() == WIFI_MODE_AP)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.on);
+    }
+
+    if (Parameters.getWifiMode() == WIFI_MODE_STA && WiFi.status() != WL_CONNECTED)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
+    }
+    else if (Parameters.getWifiMode() == WIFI_MODE_STA && WiFi.status() == WL_CONNECTED)
+    {
+        ledManager.setLED(ledManager.wifi, ledManager.on);
+    }
 }
 
 //---------------------------------------------------------------------------------
 //-- Reset all parameters whenever the reset gpio pin is active
-void reset_interrupt(){
+void reset_interrupt()
+{
     Parameters.resetToDefaults();
     Parameters.saveAllToEeprom();
     ESP.reset();
@@ -134,17 +162,24 @@ void reset_interrupt(){
 
 //---------------------------------------------------------------------------------
 //-- Set things up
-void setup() {
+void setup()
+{
     delay(1000);
     Parameters.begin();
+    // set up pins for LEDs
+    pinMode(12, OUTPUT);
+    pinMode(4, OUTPUT);
+    pinMode(5, OUTPUT);
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
-    Serial1.begin(115200);
+    // Serial.begin(115200);
+    // Serial.print("test");
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
     attachInterrupt(GPIO02, reset_interrupt, FALLING);
+
 #endif
     Logger.begin(2048);
 
@@ -153,31 +188,43 @@ void setup() {
 
     WiFi.disconnect(true);
 
-    if(Parameters.getWifiMode() == WIFI_MODE_STA){
+    if (Parameters.getWifiMode() == WIFI_MODE_STA)
+    {
         //-- Connect to an existing network
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
         WiFi.mode(WIFI_STA);
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
 
         //-- Wait a minute to connect
-        for(int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++) {
-            #ifdef ENABLE_DEBUG
+        for (int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++)
+        {
+#ifdef ENABLE_DEBUG
             Serial.print(".");
-            #endif
+#endif
+            ledManager.blinkLED();
             delay(500);
         }
-        if(WiFi.status() == WL_CONNECTED) {
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            ledManager.setLED(ledManager.wifi, ledManager.on);
+            ledManager.setLED(ledManager.gcs, ledManager.blink);
+            ledManager.setLED(ledManager.air, ledManager.blink);
             localIP = WiFi.localIP();
             WiFi.setAutoReconnect(true);
-        } else {
+        }
+        else
+        {
             //-- Fall back to AP mode if no connection could be established
             WiFi.disconnect(true);
             Parameters.setWifiMode(WIFI_MODE_AP);
         }
     }
 
-    if(Parameters.getWifiMode() == WIFI_MODE_AP){
+    if (Parameters.getWifiMode() == WIFI_MODE_AP)
+    {
         //-- Start AP
+        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
         WiFi.mode(WIFI_AP);
         WiFi.encryptionType(AUTH_WPA2_PSK);
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
@@ -189,7 +236,7 @@ void setup() {
     WiFi.setOutputPower(20.5);
     //-- MDNS
     char mdsnName[256];
-    sprintf(mdsnName, "MavEsp8266-%d",localIP[3]);
+    sprintf(mdsnName, "MavEsp8266-%d", localIP[3]);
     MDNS.begin(mdsnName);
     MDNS.addService("http", "tcp", 80);
     //-- Initialize Comm Links
@@ -208,18 +255,25 @@ void setup() {
 
 //---------------------------------------------------------------------------------
 //-- Main Loop
-void loop() {
-    if(!updateStatus.isUpdating()) {
-        if (Component.inRawMode()) {
+void loop()
+{
+    if (!updateStatus.isUpdating())
+    {
+        check_wifi_connected();
+        if (Component.inRawMode())
+        {
             GCS.readMessageRaw();
             delay(0);
             Vehicle.readMessageRaw();
-
-        } else {
+        }
+        else
+        {
             GCS.readMessage();
             delay(0);
             Vehicle.readMessage();
         }
     }
     updateServer.checkUpdates();
+    ledManager.blinkLED();
+    ledManager.doubleBlinkLED();
 }
