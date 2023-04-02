@@ -41,7 +41,7 @@
 #include "mavesp8266_parameters.h"
 #include "crc.h"
 
-const char *kDEFAULT_SSID = "Beyond00";
+const char *kDEFAULT_SSID = "Beyond";
 const char *kDEFAULT_PASSWORD = "robotix1"; // -- This MUST be 8 characters or longer
 
 //-- Reserved space for EEPROM persistence. A change in this will cause all values to reset to defaults.
