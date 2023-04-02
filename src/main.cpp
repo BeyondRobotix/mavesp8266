@@ -189,6 +189,10 @@ void setup()
 
     WiFi.disconnect(true);
 
+    // Set LEDs to off state when reboot
+    ledManager.setLED(ledManager.air, ledManager.off);
+    ledManager.setLED(ledManager.gcs, ledManager.off);
+
     if (Parameters.getWifiMode() == WIFI_MODE_STA)
     {
         //-- Connect to an existing network
