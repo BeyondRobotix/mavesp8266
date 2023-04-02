@@ -23,7 +23,7 @@ If this message is sent specifically to the MavESP8266 component ID, it will set
 | ------------- | -------------- | ----------- |
 | DEBUG_ENABLED | MAV_PARAM_TYPE_INT8  | Enable Debug Messages (1) |
 | SW_VER  | MAV_PARAM_TYPE_UINT32 | Firmware Version (Read Only) |
-| UART_BAUDRATE | MAV_PARAM_TYPE_UINT32 | UAS UART Link Baud Rate (default to 921600) |
+| UART_BAUDRATE | MAV_PARAM_TYPE_UINT32 | UAS UART Link Baud Rate (default to 57600) |
 | WIFI_CHANNEL  | MAV_PARAM_TYPE_UINT32 | AP WiFi Channel (default to 11) |
 | WIFI_IPADDRESS | MAV_PARAM_TYPE_UINT32 | Local IP Address (default to 192.168.4.1 when in AP Mode) (Read Only) |
 | WIFI_MODE | MAV_PARAM_TYPE_INT8 | WiFi Operating Mode (3) |
