@@ -1,3 +1,9 @@
+# Project Archived.
+
+It's been years since I last did any work on this project and given the time it's been since, technology has far advanced. [tridge](https://github.com/tridge?tab=repositories) has a much better handle on this on his repositories. Let me know if anyone wants to take over it.
+
+
+
 # MavESP8266
 
 ## Current Binary
