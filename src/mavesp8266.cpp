@@ -82,7 +82,7 @@ MavESP8266Bridge::_checkLinkErrors(mavlink_message_t* msg)
 }
 
 //---------------------------------------------------------------------------------
-MavESP8266Log::MavESP8266Log()
+MavESP8266Log:: MavESP8266Log()
     : _buffer(NULL)
     , _buffer_size(0)
     , _log_offset(0)
