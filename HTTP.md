@@ -36,8 +36,8 @@ There are the supported parameters:
 | pwd | robotix1  | WiFi AP Password | http://192.168.4.1/setparameters?pwd=robotix1 |
 | pwdsta | robotix1  | WiFi STA Password | http://192.168.4.1/setparameters?pwdsta=robotix1 |
 | reboot | 0  | Reboot the WiFi Bridge | http://192.168.4.1/setparameters?reboot=1 |
-| ssid | Beyond  | WiFi AP SSID | http://192.168.4.1/setparameters?ssid=Beyond |
-| ssidsta | Beyond  | WiFi STA SSID | http://192.168.4.1/setparameters?ssidsta=Beyond |
+| ssid | Beyond1  | WiFi AP SSID | http://192.168.4.1/setparameters?ssid=Beyond1 |
+| ssidsta | Beyond1  | WiFi STA SSID | http://192.168.4.1/setparameters?ssidsta=Beyond1 |
 | ipsta | 0.0.0.0 | Wifi STA Static IP | http://192.168.4.1/setparameters?ipsta=192.168.4.2 |
 | gatewaysta | 0.0.0.0 | Wifi STA Gateway | http://192.168.4.1/setparameters?gatewaysta=192.168.4.1 |
 | subnetsta | 0.0.0.0 | Wifi STA Subnet | http://192.168.4.1/setparameters?subnetsta=255.255.255.0 |
