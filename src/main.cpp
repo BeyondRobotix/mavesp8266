@@ -108,20 +108,10 @@ MavESP8266World *getWorld()
 void wait_for_client()
 {
     DEBUG_LOG("Waiting for a client...\n");
-#ifdef ENABLE_DEBUG
-    int wcount = 0;
-#endif
+
     uint8 client_count = wifi_softap_get_station_num();
     while (!client_count)
     {
-#ifdef ENABLE_DEBUG
-        Serial.print(".");
-        if (++wcount > 80)
-        {
-            wcount = 0;
-            Serial1.println();
-        }
-#endif
         ledManager.blinkLED();
         delay(200);
         client_count = wifi_softap_get_station_num();
@@ -136,7 +126,7 @@ void check_wifi_connected()
 {
     if (Parameters.getWifiMode() == WIFI_MODE_AP && !wifi_softap_get_station_num())
     {
-        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
     }
     else if (Parameters.getWifiMode() == WIFI_MODE_AP)
     {
@@ -145,7 +135,7 @@ void check_wifi_connected()
 
     if (Parameters.getWifiMode() == WIFI_MODE_STA && WiFi.status() != WL_CONNECTED)
     {
-        ledManager.setLED(ledManager.wifi, ledManager.blink);
+        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
     }
     else if (Parameters.getWifiMode() == WIFI_MODE_STA && WiFi.status() == WL_CONNECTED)
     {
@@ -162,81 +152,26 @@ IRAM_ATTR void reset_interrupt()
     ESP.reset();
 }
 
-//---------------------------------------------------------------------------------
-//-- Set things up
-void setup()
+void setup_station()
 {
-    delay(1000);
-    Parameters.begin();
-    // set up pins for LEDs
-    pinMode(12, OUTPUT);
-    pinMode(4, OUTPUT);
-    pinMode(5, OUTPUT);
-#ifdef ENABLE_DEBUG
-    //   We only use it for non debug because GPIO02 is used as a serial
-    //   pin (TX) when debugging.
-    Serial.begin(115200);
-    Serial.print("test");
-#else
-    //-- Initialized GPIO02 (Used for "Reset To Factory")
-    pinMode(GPIO02, INPUT_PULLUP);
-    attachInterrupt(GPIO02, reset_interrupt, FALLING);
-#endif
-    Logger.begin(2048);
+    //-- Connect to an existing network
+    ledManager.setLED(ledManager.wifi, ledManager.doubleBlink); // Double blink while searching for station
+    WiFi.mode(WIFI_STA);
+    WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
+    WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
+}
 
-    DEBUG_LOG("\nConfiguring access point...\n");
-    DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
+void setup_AP()
+{
+    ledManager.setLED(ledManager.wifi, ledManager.blink);
+    WiFi.mode(WIFI_AP);
+    WiFi.encryptionType(AUTH_WPA2_PSK);
+    WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
+    localIP = WiFi.softAPIP();
+}
 
-    WiFi.disconnect(true);
-
-    // Set LEDs to off state when reboot
-    ledManager.setLED(ledManager.air, ledManager.off);
-    ledManager.setLED(ledManager.gcs, ledManager.off);
-
-    if (Parameters.getWifiMode() == WIFI_MODE_STA)
-    {
-        //-- Connect to an existing network
-        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink); // Double blink while searching for station
-        WiFi.mode(WIFI_STA);
-        WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
-        WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
-
-        //-- Wait a minute to connect
-        for (int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++)
-        {
-#ifdef ENABLE_DEBUG
-            Serial.print(".");
-#endif
-            ledManager.doubleBlinkLED();
-            delay(500);
-        }
-        if (WiFi.status() == WL_CONNECTED)
-        {
-            ledManager.setLED(ledManager.wifi, ledManager.on);
-            ledManager.setLED(ledManager.gcs, ledManager.blink);
-            ledManager.setLED(ledManager.air, ledManager.blink);
-            localIP = WiFi.localIP();
-            WiFi.setAutoReconnect(true);
-        }
-        else
-        {
-            //-- Fall back to AP mode if no connection could be established
-            WiFi.disconnect(true);
-            Parameters.setWifiMode(WIFI_MODE_AP);
-        }
-    }
-
-    if (Parameters.getWifiMode() == WIFI_MODE_AP)
-    {
-        //-- Start AP
-        ledManager.setLED(ledManager.wifi, ledManager.blink);
-        WiFi.mode(WIFI_AP);
-        WiFi.encryptionType(AUTH_WPA2_PSK);
-        WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
-        localIP = WiFi.softAPIP();
-        wait_for_client();
-    }
-
+void setup_wifi()
+{
     //-- Boost power to Max
     WiFi.setOutputPower(20.5);
     //-- MDNS
@@ -253,16 +188,109 @@ void setup()
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip[3] = 255;
     GCS.begin(&Vehicle, gcs_ip);
-    Vehicle.begin(&GCS);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
 }
 
+bool connect_wifi()
+{
+    if (Parameters.getWifiMode() == WIFI_MODE_STA)
+    {
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            ledManager.setLED(ledManager.wifi, ledManager.on);
+            ledManager.setLED(ledManager.gcs, ledManager.blink);
+            localIP = WiFi.localIP();
+            WiFi.setAutoReconnect(true);
+            setup_wifi();
+            return false;
+        }
+        else if (millis() > 60000)
+        {
+            //-- Fall back to AP mode if no connection could be established
+            WiFi.disconnect(true);
+            Parameters.setWifiMode(WIFI_MODE_AP);
+            setup_AP();
+        }
+    }
+
+    if (Parameters.getWifiMode() == WIFI_MODE_AP)
+    {
+        DEBUG_LOG("Waiting for a client...\n");
+
+        uint8 client_count = wifi_softap_get_station_num();
+
+        if (client_count)
+        {
+            ledManager.setLED(ledManager.wifi, ledManager.on);
+            ledManager.setLED(ledManager.gcs, ledManager.blink);
+            DEBUG_LOG("Got %d client(s)\n", client_count);
+            setup_wifi();
+            return false;
+        }
+    }
+    return true;
+}
+
+//---------------------------------------------------------------------------------
+//-- Set things up
+void setup()
+{
+    delay(1000);
+    Parameters.begin();
+    // set up pins for LEDs
+    pinMode(12, OUTPUT);
+    pinMode(4, OUTPUT);
+    pinMode(5, OUTPUT);
+
+    //-- Initialize GPIO02 (Used for "Reset To Factory")
+    pinMode(GPIO02, INPUT_PULLUP);
+    attachInterrupt(GPIO02, reset_interrupt, FALLING);
+
+    Logger.begin(2048);
+
+    DEBUG_LOG("\nConfiguring access point...\n");
+    DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
+
+    WiFi.disconnect(true);
+
+    // Set LED state when reboot
+    ledManager.setLED(ledManager.air, ledManager.off);
+    ledManager.setLED(ledManager.air, ledManager.blink);
+    ledManager.setLED(ledManager.gcs, ledManager.blink);
+
+    if (Parameters.getWifiMode() == WIFI_MODE_STA)
+    {
+        setup_station();
+    }
+
+    if (Parameters.getWifiMode() == WIFI_MODE_AP)
+    {
+        setup_AP();
+    }
+
+    Vehicle.begin(&GCS);
+}
+
 //---------------------------------------------------------------------------------
 //-- Main Loop
+bool firstConnection = true; // Flag to see if this is the first time connecting to wifi
+
 void loop()
 {
-    if (!updateStatus.isUpdating())
+    if (firstConnection)
+    {
+        firstConnection = connect_wifi();
+        if (Component.inRawMode())
+        {
+            Vehicle.readMessageRaw();
+        }
+        else
+        {
+            Vehicle.readMessage();
+        }
+    }
+    else
     {
         check_wifi_connected();
         if (Component.inRawMode())
@@ -277,8 +305,8 @@ void loop()
             delay(0);
             Vehicle.readMessage();
         }
+        updateServer.checkUpdates();
     }
-    updateServer.checkUpdates();
     ledManager.blinkLED();
     ledManager.doubleBlinkLED();
 }
