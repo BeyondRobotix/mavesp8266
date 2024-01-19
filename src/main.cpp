@@ -45,7 +45,7 @@
 
 #include <ESP8266mDNS.h>
 
-#define GPIO02  2
+#define GPIO02 2
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
 class MavESP8266UpdateImp : public MavESP8266Update
@@ -122,7 +122,7 @@ void wait_for_client()
             Serial1.println();
         }
 #endif
-        ledManager.doubleBlinkLED();
+        ledManager.blinkLED();
         delay(200);
         client_count = wifi_softap_get_station_num();
     }
@@ -196,7 +196,7 @@ void setup()
     if (Parameters.getWifiMode() == WIFI_MODE_STA)
     {
         //-- Connect to an existing network
-        ledManager.setLED(ledManager.wifi, ledManager.blink);
+        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink); // Double blink while searching for station
         WiFi.mode(WIFI_STA);
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
@@ -207,7 +207,7 @@ void setup()
 #ifdef ENABLE_DEBUG
             Serial.print(".");
 #endif
-            ledManager.blinkLED();
+            ledManager.doubleBlinkLED();
             delay(500);
         }
         if (WiFi.status() == WL_CONNECTED)
@@ -229,7 +229,7 @@ void setup()
     if (Parameters.getWifiMode() == WIFI_MODE_AP)
     {
         //-- Start AP
-        ledManager.setLED(ledManager.wifi, ledManager.doubleBlink);
+        ledManager.setLED(ledManager.wifi, ledManager.blink);
         WiFi.mode(WIFI_AP);
         WiFi.encryptionType(AUTH_WPA2_PSK);
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
