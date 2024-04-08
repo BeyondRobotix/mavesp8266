@@ -39,6 +39,12 @@
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
+#ifdef ARDUINO_ESP32_DEV
+#include <esp_wifi.h>
+#include <tcpip_adapter.h>
+#endif
+
+WiFiUDP             _udp;
 
 //---------------------------------------------------------------------------------
 MavESP8266GCS::MavESP8266GCS()
@@ -87,7 +93,11 @@ MavESP8266GCS::readMessage()
 bool
 MavESP8266GCS::_readMessage()
 {
+#ifdef ARDUINO_ESP32_DEV
+    char msgReceived = false;
+#else  
     bool msgReceived = false;
+#endif    
     int udp_count = _udp.parsePacket();
     if(udp_count > 0)
     {
@@ -114,7 +124,11 @@ MavESP8266GCS::_readMessage()
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                             //-- We no longer need DHCP
                             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
+#ifdef ARDUINO_ESP32_DEV
+			      tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
+#else			      
                                 wifi_softap_dhcps_stop();
+#endif				
                             }
                             _heard_from      = true;
                             _system_id       = _message.sysid;
@@ -155,7 +169,11 @@ MavESP8266GCS::_readMessage()
         if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
             //-- Restart DHCP and start broadcasting again
             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
-                wifi_softap_dhcps_start();
+#ifdef ARDUINO_ESP32_DEV
+	      tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP);
+#else		
+	      wifi_softap_dhcps_start();
+#endif	      
             }
             _heard_from = false;
             _ip[3] = 255;
@@ -248,10 +266,19 @@ MavESP8266GCS::_sendRadioStatus()
     uint8_t rssi = 0;
     uint8_t lostVehicleMessages = 100;
     uint8_t lostGcsMessages = 100;
-
+#ifdef ARDUINO_ESP32_DEV
+    {
+        wifi_mode_t mode;
+	esp_wifi_get_mode(&mode);
+	if(mode == WIFI_MODE_STA) {
+	    rssi = WiFi.RSSI();
+	  }
+    }
+#else    
     if(wifi_get_opmode() == STATION_MODE) {
         rssi = (uint8_t)wifi_station_get_rssi();
     }
+#endif    
 
     if (st->packets_received > 0) {
         lostVehicleMessages = (st->packets_lost * 100) / st->packets_received;

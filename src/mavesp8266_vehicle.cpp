@@ -174,7 +174,7 @@ MavESP8266Vehicle::getStatus()
 bool
 MavESP8266Vehicle::_readMessage()
 {
-    bool msgReceived = false;
+    uint8_t msgReceived = false;
     while(Serial.available())
     {
         int result = Serial.read();

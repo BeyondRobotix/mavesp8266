@@ -42,7 +42,20 @@
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_component.h"
 
+#ifndef ARDUINO_ESP32_DEV
 #include <ESP8266mDNS.h>
+#else
+/* ESP32 */
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+#include <esp_event.h>
+#include <esp_event_loop.h>
+#include <esp_wifi.h>
+#include <esp_wifi_types.h>
+#include <esp_err.h>
+#include <mdns.h>
+#endif
 
 #define GPIO02  2
 
@@ -109,7 +122,11 @@ void wait_for_client() {
 #ifdef ENABLE_DEBUG
     int wcount = 0;
 #endif
+#ifdef ARDUINO_ESP32_DEV
+    uint8 client_count = WiFi.softAPgetStationNum();
+#else    
     uint8 client_count = wifi_softap_get_station_num();
+#endif    
     while (!client_count) {
 #ifdef ENABLE_DEBUG
         Serial1.print(".");
@@ -119,7 +136,11 @@ void wait_for_client() {
         }
 #endif
         delay(1000);
+#ifdef ARDUINO_ESP32_DEV
+	client_count = WiFi.softAPgetStationNum();
+#else	
         client_count = wifi_softap_get_station_num();
+#endif	
     }
     DEBUG_LOG("Got %d client(s)\n", client_count);
 }
@@ -129,7 +150,11 @@ void wait_for_client() {
 void reset_interrupt(){
     Parameters.resetToDefaults();
     Parameters.saveAllToEeprom();
+#ifdef ARDUINO_ESP32_DEV
+    ESP.restart();
+#else    
     ESP.reset();
+#endif    
 }
 
 //---------------------------------------------------------------------------------
@@ -155,7 +180,11 @@ void setup() {
 
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
         //-- Connect to an existing network
+#ifdef ARDUINO_ESP32_DEV
+        WiFi.mode(WIFI_MODE_STA);      
+#else      
         WiFi.mode(WIFI_STA);
+#endif	
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
 
@@ -178,20 +207,35 @@ void setup() {
 
     if(Parameters.getWifiMode() == WIFI_MODE_AP){
         //-- Start AP
+#ifdef ARDUINO_ESP32_DEV
+	WiFi.mode(WIFI_MODE_AP);      /* Default to WPA2 */
+#else
         WiFi.mode(WIFI_AP);
-        WiFi.encryptionType(AUTH_WPA2_PSK);
+        WiFi.encryptionType(AUTH_WPA2_PSK);	
+#endif	
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
         localIP = WiFi.softAPIP();
         wait_for_client();
     }
-
-    //-- Boost power to Max
+    //-- Boost power to Max    
+#ifdef ARDUINO_ESP32_DEV
+    {
+         int8_t power;
+	 esp_wifi_get_max_tx_power(&power);
+	 esp_wifi_set_max_tx_power(power);
+    }
+#else
     WiFi.setOutputPower(20.5);
-    //-- MDNS
+#endif    
     char mdsnName[256];
     sprintf(mdsnName, "MavEsp8266-%d",localIP[3]);
+#ifdef ARDUINO_ESP32_DEV
+    mdns_init();
+    mdns_service_add(NULL, "http", "tcp", 80, NULL, 0);
+#else    
     MDNS.begin(mdsnName);
     MDNS.addService("http", "tcp", 80);
+#endif    
     //-- Initialize Comm Links
     DEBUG_LOG("Start WiFi Bridge\n");
     DEBUG_LOG("Local IP: %s\n", localIP.toString().c_str());

@@ -38,8 +38,12 @@
 #ifndef MAVESP8266_PARAMETERS_H
 #define MAVESP8266_PARAMETERS_H
 
+#ifdef ARDUINO_ESP32_DEV
+#include <esp_wifi_types.h>
+#else
 #define WIFI_MODE_AP 0
 #define WIFI_MODE_STA 1
+#endif
 
 //-- Constants
 #define DEFAULT_WIFI_MODE       WIFI_MODE_AP
