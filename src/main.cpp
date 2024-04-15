@@ -210,9 +210,16 @@ void setup() {
 //-- Main Loop
 void loop() {
     if(!updateStatus.isUpdating()) {
+        if (Component.inRawMode()) {
             GCS.readMessageRaw();
             delay(0);
             Vehicle.readMessageRaw();
+
+        } else {
+            GCS.readMessageRaw();
+            delay(0);
+            Vehicle.readMessageRaw();
+        }
     }
     updateServer.checkUpdates();
 }
